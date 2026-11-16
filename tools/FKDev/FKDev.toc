@@ -1,0 +1,8 @@
+## Interface: 16001
+## Title: FKDev
+## Notes: ForeverKit live test loop: captures errors, runs in-game tests and the queue written by `fk live run`, saves results for `fk live results`. Development only.
+## Version: 1.0.0
+## SavedVariables: FKDevDB
+
+Queue.lua
+FKDev.lua

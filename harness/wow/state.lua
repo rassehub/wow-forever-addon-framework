@@ -27,6 +27,17 @@ function H.After(delay, fn)
 	return t
 end
 
+-- Calls fn the way the client calls addon callbacks (scripts, events, timers). With no handler
+-- installed errors propagate so tests fail loudly; once an addon calls seterrorhandler, errors go
+-- to that handler and the caller carries on, as in the client.
+function H.call(fn, ...)
+	local handler = H.errorHandler
+	if not handler then return fn(...) end
+	local args, n = { ... }, select("#", ...)
+	local r = { xpcall(function() return fn(unpack(args, 1, n)) end, function(e) pcall(handler, e) return e end) }
+	if r[1] then return unpack(r, 2, table.maxn(r)) end
+end
+
 local function runDueTimers()
 	-- timers may schedule timers: keep draining until none is due
 	while true do
@@ -36,7 +47,7 @@ local function runDueTimers()
 		end
 		if not due then return end
 		local t = table.remove(H.timers, due)
-		if not t.cancelled then t.fn() end
+		if not t.cancelled then H.call(t.fn) end
 	end
 end
 

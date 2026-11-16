@@ -170,9 +170,10 @@ function H.Install()
 		H.log[#H.log + 1] = line
 		if H.verbose then realPrint("[chat] " .. H.plain(line)) end
 	end
-	local errorHandler = function(msg) error(msg, 0) end
-	G.geterrorhandler = function() return errorHandler end
-	G.seterrorhandler = function(fn) errorHandler = fn end
+	local raise = function(msg) error(msg, 0) end
+	H.errorHandler = nil
+	G.geterrorhandler = function() return H.errorHandler or raise end
+	G.seterrorhandler = function(fn) H.errorHandler = fn end
 	G.debugstack = function() return "" end
 	G.debugprofilestop = function() return H.clock * 1000 end
 	G.securecall = function(fn, ...) if realType(fn) == "string" then fn = G[fn] end return fn(...) end
@@ -205,6 +206,8 @@ function H.Install()
 	G.IsLoggedIn = function() return H.loggedIn == true end
 	G.InCombatLockdown = function() return H.inCombat end
 	G.ReloadUI = function() H.reloadRequested = true end
+	-- every file exists unless a test lists it in H.missingFiles (the real answer needs the client)
+	G.GetFileIDFromPath = function(path) return not (H.missingFiles and H.missingFiles[path]) and 1 or nil end
 	G.Screenshot = function() H.screenshots = (H.screenshots or 0) + 1 end
 	G.SOUNDKIT = setmetatable({}, { __index = function(_, k) return k end })
 	H.sounds = {}

@@ -82,7 +82,7 @@ end
 
 local function run(o, script, ...)
 	local fn = o[0].scripts[script]
-	if fn then return fn(o, ...) end
+	if fn then return H.call(fn, o, ...) end
 end
 H.run = run
 

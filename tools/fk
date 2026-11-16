@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -270,6 +271,122 @@ def cmd_data(args):
     lua(HARNESS / "data.lua", db, args.entity, " ".join(args.query), *extra)
 
 
+FKDEV = ROOT / "tools" / "FKDev"
+
+
+def addons_folder():
+    path = wow_dir() / "Interface" / "AddOns"
+    if not path.is_dir():
+        die(f"no AddOns folder at {path}")
+    return path
+
+
+def cmd_link(args):
+    """Symlink addon folders from this repo into the game's AddOns folder (nothing is copied)."""
+    target_dir = addons_folder()
+    for name in args.addons:
+        src = FKDEV if name == "FKDev" else addon_dir(name)
+        dst = target_dir / src.name
+        if dst.is_symlink():
+            if dst.resolve() == src.resolve():
+                print(f"{src.name}: already linked")
+                continue
+            die(f"{dst} is a symlink to {os.readlink(dst)}, not this repo; leaving it alone")
+        if dst.exists():
+            die(f"{dst} already exists and is not a link (an installed addon?); leaving it alone")
+        dst.symlink_to(src.resolve(), target_is_directory=True)
+        print(f"{src.name}: linked -> {src.resolve()}")
+    print("A newly linked addon appears after restarting the game (a /reload does not rescan the folder list).")
+
+
+def cmd_unlink(args):
+    """Remove symlinks made by `fk link`. Only symlinks into this repo are touched, never real folders."""
+    target_dir = addons_folder()
+    for name in args.addons:
+        dst = target_dir / name
+        if not dst.is_symlink():
+            die(f"{dst} is not a symlink; fk only removes its own links")
+        if ROOT.resolve() not in dst.resolve().parents:
+            die(f"{dst} points outside this repo ({os.readlink(dst)}); leaving it alone")
+        dst.unlink()
+        print(f"{name}: unlinked")
+
+
+def fkdev_saved():
+    """The newest FKDev.lua SavedVariables file under WTF/Account (the account folder name is never printed)."""
+    files = sorted((wow_dir() / "WTF" / "Account").glob("*/SavedVariables/FKDev.lua"), key=lambda p: p.stat().st_mtime)
+    if not files:
+        die("no FKDev results yet: link FKDev (fk link FKDev), restart the game, log in, then /reload")
+    out = lua(HARNESS / "sv2json.lua", files[-1], capture=True)
+    data = json.loads(out.stdout).get("FKDevDB") or {}
+    return data, files[-1]
+
+
+def cmd_live(args):
+    if args.action == "run":
+        snippets = args.lua or []
+        qid = time.strftime("%Y%m%d-%H%M%S")
+        def q(v):
+            return "[==[" + v + "]==]"
+        body = ["-- Written by `fk live run`; runs once, after the next /reload.", "FKDEV_QUEUE = {",
+                f"\tid = {q(qid)},", "\tlua = {"] + [f"\t\t{q(code)}," for code in snippets] + ["\t},"]
+        if args.tree:
+            body.append(f"\ttree = {q(args.tree)},")
+        if args.shot:
+            body.append("\tshot = true,")
+        body.append("}")
+        if any("]==]" in code for code in snippets + [args.tree or ""]):
+            die("a snippet contains ]==]; rephrase it")
+        (FKDEV / "Queue.lua").write_text("\n".join(body) + "\n")
+        print(f"queued {qid}. In game: /reload (or /rl), then click the FKDev button to save, then: fk live results")
+        return
+    if args.action == "shot":
+        shots = sorted((wow_dir() / "Screenshots").glob("*"), key=lambda p: p.stat().st_mtime)
+        if not shots:
+            die("no screenshots yet")
+        print(shots[-1])
+        return
+    data, path = fkdev_saved()
+    sessions = data.get("sessions") or []
+    if not sessions:
+        die("FKDevDB has no sessions yet")
+    s = sessions[0]
+    age = int(time.time() - path.stat().st_mtime)
+    print(f"session {s.get('started')} (saved {age}s ago), client {', '.join(map(str, s.get('client', [])))}")
+    errors = s.get("errors") or []
+    if args.action == "errors" or errors:
+        print(f"\n{len(errors)} error(s):")
+        for e in errors:
+            print(f"  [{e.get('kind')}] x{e.get('count')} {e.get('message')}")
+            if args.verbose and e.get("stack"):
+                print("    " + str(e["stack"]).replace("\n", "\n    "))
+    if args.action == "errors":
+        return
+    tests = s.get("tests") or []
+    failed = [t for t in tests if not t.get("ok")]
+    print(f"\n{len(tests) - len(failed)} test(s) passed, {len(failed)} failed")
+    for t in tests:
+        if t.get("ok") and not args.verbose:
+            continue
+        print(f"  {'ok  ' if t.get('ok') else 'FAIL'} {t.get('addon')}: {t.get('name')}")
+        for f in t.get("failures") or []:
+            print("       " + str(f).replace("\n", "\n       "))
+    run = s.get("run")
+    if run:
+        print(f"\nqueue {run.get('id')}:")
+        for o in run.get("outputs") or []:
+            status = "ok" if o.get("ok") else "ERROR"
+            print(f"  {status} {o.get('code')}")
+            if o.get("error"):
+                print(f"       {o['error']}")
+            if o.get("returns"):
+                print("       -> " + ", ".join(map(str, o["returns"])))
+        for line in run.get("tree") or []:
+            print("  " + line)
+    if failed or errors:
+        sys.exit(1)
+
+
 def main():
     parser = argparse.ArgumentParser(prog="fk", description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -306,6 +423,22 @@ def main():
     p.add_argument("--raw", action="store_true", help="plain ids in drop/vendor/quest lists, without names")
     p.add_argument("--questiedb", help="QuestieDB folder (default: the one in the configured WoW install)")
     p.set_defaults(func=cmd_data)
+
+    p = sub.add_parser("link", help="symlink addons (examples/, addons/, or FKDev) into the game's AddOns folder")
+    p.add_argument("addons", nargs="+")
+    p.set_defaults(func=cmd_link)
+
+    p = sub.add_parser("unlink", help="remove symlinks made by fk link")
+    p.add_argument("addons", nargs="+")
+    p.set_defaults(func=cmd_unlink)
+
+    p = sub.add_parser("live", help="live loop with the real client through FKDev: run | results | errors | shot")
+    p.add_argument("action", choices=["run", "results", "errors", "shot"])
+    p.add_argument("--lua", action="append", help="(run) Lua to run in game after the next /reload; repeatable")
+    p.add_argument("--tree", help="(run) frame name to dump after the queue ran")
+    p.add_argument("--shot", action="store_true", help="(run) take a screenshot after the queue ran")
+    p.add_argument("-v", "--verbose", action="store_true", help="(results) list passing tests and error stacks")
+    p.set_defaults(func=cmd_live)
 
     p = sub.add_parser("preview", help="render an addon's UI to .preview/<name>.html and .png")
     ui_args(p)

@@ -3,6 +3,8 @@
 ## Notes: Every ForeverKit widget on one window, with a theme switcher. /fkgallery
 ## Version: 1.0.0
 ## SavedVariables: FKGalleryDB
+## OptionalDeps: FKDev
 
 Libs\ForeverKit\ForeverKit.xml
 Gallery.lua
+DevTests.lua
