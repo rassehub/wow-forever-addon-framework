@@ -19,7 +19,7 @@ notes, commit.** Research that the decisions rest on is in [`research/`](researc
 - [x] **Step 7** — Themes (`vanilla`, `pixel`, `glass`, `parchment`), HTML preview renderer, `FKGallery` showcase addon
 - [x] **Step 8** — Feature modules ("hooks"): tooltips, items, bags, minimap button + compartment, comms, combat queue, secrets helpers, movers, map pins, chat
 - [x] **Step 9** — Game data: QuestieDB + Auctionator runtime bridges, offline `fk data` tools
-- [ ] **Step 10** — Live testing: `fk link`, `FKDev` in-game addon, `fk live`, verified against the real client
+- [x] **Step 10** — Live testing: `fk link`, `FKDev` in-game addon, `fk live`, verified against the real client
 - [ ] **Step 11** — Scaffold (`fk new`), `fk build`, three example addons of different kinds
 - [ ] **Step 12** — Claude skills (with skill-creator), generated component catalog, UI/UX + feature guidelines
 - [ ] **Step 13** — Human operation guide, README, full QA pass, in-game checklist
@@ -341,3 +341,31 @@ columns, selection), `Tree` (collapsible, lazy), composite rows — `ToggleRow`,
 - Skipped: the TSM price source (API unverified), zone id → uiMapID conversion helper (QuestieDB
   ships the table; expose it when an example needs map pins from spawns), Auctionator's
   undocumented v1 calls.
+
+### Step 10 (2026-11-16) — verified against the running client (1.60.1, build 70938)
+- `fk link <addon...>` symlinks repo folders (examples/, addons/, or `FKDev`) into AddOns and
+  refuses to touch anything that is not its own link; `fk unlink` removes only symlinks into this
+  repo. A newly linked addon needs a game restart; changed files only need `/reload`.
+- `tools/FKDev`: error capture (wraps the previous handler; `ADDON_ACTION_BLOCKED/FORBIDDEN`,
+  `LUA_WARNING`), `FKDev.Test(addon, name, fn(assert))` run 1 s after login, the queue from
+  `Queue.lua` (read at login, runs once per id), frame tree dump in the emulator's format (UI
+  units), `Screenshot()`, a gold "click to save" button that reloads (a click is a hardware
+  event), `/rl`, `/fkdev tree`. Results go to `FKDevDB` (last 5 sessions).
+- `fk live run [--lua CODE]... [--tree FRAME] [--shot]` writes `tools/FKDev/Queue.lua` (marked
+  `skip-worktree` so live queues stay out of git); `fk live results [-v]` / `errors` read the
+  newest `WTF/Account/*/SavedVariables/FKDev.lua` through `harness/sv2json.lua` (data-only
+  sandbox); `fk live shot` prints the newest screenshot path. Exit status 1 on failures/errors.
+- Emulator: callback errors go to an addon-installed error handler (`H.call`), as in the client;
+  without one they still raise. `GetFileIDFromPath` (`H.missingFiles` to simulate absence).
+- **Verified in game:** the deliberate error and passing tests both appear in `fk live results`;
+  every texture path in the four themes and the feature modules exists; `WorldMapFrame` canvas
+  and `OnMapChanged`, addon compartment, `SetOverrideBindingClick`, `TooltipDataProcessor`,
+  `C_EncodingUtil`, `UiMapPoint`/`C_SuperTrack`/`C_Map.SetUserWaypoint`, the SOUNDKIT names and
+  font objects exist; the minimap button sits on the edge; all themes switch without errors;
+  QuestieDB is loaded in the user's client.
+- **Bug found only in game, fixed:** the default UI calls `CloseAllWindows()` on
+  `PLAYER_ENTERING_WORLD` (after `PLAYER_LOGIN`), hiding UISpecialFrames windows opened at login.
+  `Window:Open()` during login now defers to `fk.world` (one frame after entering the world);
+  `FK.inWorld`. The emulator's login performs the same close-all.
+- Not verified yet: the glass/parchment look by eye, map pins on the real map, comm between two
+  clients, keybind press, Movers drag. Each needs an example addon or a human; step 11/13.
