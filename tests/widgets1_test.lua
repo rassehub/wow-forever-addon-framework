@@ -1,0 +1,300 @@
+-- Widgets I: controls and layout containers, in both built-in themes.
+local KIT = ROOT .. "/tests/fixtures/KitTest"
+
+local function kit(theme, container)
+	local FK = H.Start(KIT).FK
+	if theme then FK.Theme:Set(theme) end
+	local win = FK.Window(UIParent, { title = "Test", width = 420, height = 520 })
+	win:Open()
+	local stack = FK[container or "Stack"](win.content, { points = { { "TOPLEFT" }, { "TOPRIGHT" } } })
+	H.Advance(0)
+	return FK, win, stack
+end
+
+local function everything(FK, stack)
+	local w = {}
+	stack:Batch(function()
+		w.heading = stack:Add(FK.Heading(stack, { text = "General" }))
+		w.label = stack:Add(FK.Label(stack, { text = "A longer explanatory sentence that has to wrap onto a second line inside the window." }))
+		w.check = stack:Add(FK.CheckBox(stack, { label = "Show tracker", value = true }))
+		w.toggle = stack:Add(FK.Toggle(stack, { label = "Announce in chat" }))
+		w.slider = stack:Add(FK.Slider(stack, { label = "Range", min = 20, max = 80, step = 5, value = 40, format = "%d yd" }))
+		w.bare = stack:Add(FK.Slider(stack, { min = 0, max = 1, percent = true, value = 0.5 }))
+		w.range = stack:Add(FK.RangeSlider(stack, { label = "Level", min = 1, max = 60, value = { 10, 20 } }))
+		w.stepper = stack:Add(FK.Stepper(stack, { label = "Rows", min = 1, max = 12, value = 4 }))
+		w.edit = stack:Add(FK.EditBox(stack, { label = "Name", placeholder = "Type a name" }))
+		w.search = stack:Add(FK.SearchBox(stack, {}))
+		w.drop = stack:Add(FK.Dropdown(stack, { label = "Channel", items = { "Say", "Party", "Guild" }, value = "Party" }))
+		w.multi = stack:Add(FK.MultiDropdown(stack, { label = "Classes", items = { "Mage", "Priest", "Rogue", "Warrior" } }))
+		w.seg = stack:Add(FK.Segmented(stack, { items = { "Left", "Center", "Right" }, value = "Left" }))
+		w.radio = stack:Add(FK.RadioGroup(stack, { items = { "Always", "In combat", "Never" }, value = "Always" }))
+		w.color = stack:Add(FK.ColorSwatch(stack, { label = "Text colour", value = { 1, 0, 0 } }))
+		w.key = stack:Add(FK.KeybindButton(stack, { label = "Toggle key" }))
+		w.bar = stack:Add(FK.ProgressBar(stack, { min = 0, max = 10, value = 4, format = "%d / %d" }))
+		w.button = stack:Add(FK.Button(stack, { text = "Reset" }))
+	end)
+	H.Advance(0)
+	return w
+end
+
+for _, theme in ipairs({ "pixel", "vanilla" }) do
+	test(theme .. ": every control lays out without overlap or overflow", function()
+		local FK, win, grid = kit(theme, "Grid")
+		win:SetSize(640, 520)
+		everything(FK, grid)
+		eq(H.LayoutIssues(win), {})
+		eq(FK.warnings, {})
+		win:SetHeight(300)
+		ok(table.concat(H.LayoutIssues(win), "\n"):find("outside its window"), "content taller than its window is reported")
+	end)
+end
+
+test("switching theme re-skins live widgets", function()
+	local FK, win, stack = kit("pixel", "Grid")
+	win:SetSize(640, 520)
+	local w = everything(FK, stack)
+	local before = w.check:GetHeight()
+	FK.Theme:Set("vanilla")
+	H.Advance(0)
+	ok(w.check:GetHeight() > before, "vanilla checkboxes are taller")
+	eq(H.LayoutIssues(win), {})
+	ok(win.plaque:IsShown())
+end)
+
+test("checkbox and toggle: click flips, SetValue is silent", function()
+	local FK, _, stack = kit()
+	local seen = {}
+	local c = stack:Add(FK.CheckBox(stack, { label = "A", onChange = function(v) seen[#seen + 1] = v end }))
+	local t = stack:Add(FK.Toggle(stack, { label = "B", value = true, onChange = function(v) seen[#seen + 1] = v end }))
+	H.Click(c.button)
+	H.Click(t.button)
+	c:SetValue(false)
+	eq(seen, { true, false })
+	eq(c:GetValue(), false)
+	c:SetEnabled(false)
+	H.Click(c.button)
+	eq(#seen, 2, "a disabled control ignores clicks")
+end)
+
+test("slider: drag snaps, arrows step, typed values are clamped", function()
+	local FK, _, stack = kit()
+	local seen = {}
+	local s = stack:Add(FK.Slider(stack, { label = "Range", min = 20, max = 80, step = 5, value = 40, format = "%d yd", onChange = function(v) seen[#seen + 1] = v end }))
+	H.Advance(0)
+	eq(s.box:GetText(), "40 yd")
+	H.Slide(s.slider, 52)
+	H.Click(s.plus.button)
+	H.Enter(s.box, "999")
+	H.Key("ENTER")
+	H.Enter(s.box, "abc")
+	H.Key("ENTER")
+	eq(seen, { 50, 55, 80 })
+	eq(s.box:GetText(), "80 yd")
+	s:SetValue(33)
+	eq(s:GetValue(), 35)
+	eq(#seen, 3)
+end)
+
+test("slider: live = false reports once, when the drag ends", function()
+	local FK, _, stack = kit()
+	local seen = {}
+	local s = stack:Add(FK.Slider(stack, { min = 0.5, max = 1.5, step = 0.05, value = 1, live = false, onChange = function(v) seen[#seen + 1] = v end }))
+	H.Advance(0)
+	s.slider:SetValue(1.2, true)
+	eq(seen, {})
+	H.Slide(s.slider, 1.3)
+	eq(seen, { 1.3 })
+	eq(s.box:GetText(), "1.30")
+end)
+
+test("range slider: thumbs drag and cannot cross", function()
+	local FK, _, stack = kit()
+	local got
+	local r = stack:Add(FK.RangeSlider(stack, { label = "Level", min = 0, max = 100, value = { 20, 40 }, onChange = function(v) got = v end }))
+	H.Advance(0)
+	local width = r.track:GetWidth() - FK.Theme.current.metric.thumbWidth
+	H.Drag(r.low, width * 0.5, 0) -- from 20 toward 70: stops at the high thumb
+	eq(got, { 40, 40 })
+	H.Drag(r.high, width * 0.3, 0)
+	eq(got, { 40, 70 })
+end)
+
+test("stepper: buttons step and stop at the bounds", function()
+	local FK, _, stack = kit()
+	local got
+	local s = stack:Add(FK.Stepper(stack, { min = 1, max = 3, value = 2, onChange = function(v) got = v end }))
+	H.Click(s.plus.button)
+	eq(got, 3)
+	ok(not s.plus:IsEnabled())
+	H.Click(s.plus.button)
+	eq(s:GetValue(), 3)
+end)
+
+test("edit box: commits on enter, escape discards, onInput per keystroke", function()
+	local FK, _, stack = kit()
+	local commits, inputs = {}, 0
+	local e = stack:Add(FK.EditBox(stack, { value = "old", onChange = function(v) commits[#commits + 1] = v end, onInput = function() inputs = inputs + 1 end }))
+	H.Enter(e.box, "new")
+	H.Key("ENTER")
+	H.Enter(e.box, "junk")
+	H.Key("ESCAPE")
+	eq(commits, { "new" })
+	eq(e:GetValue(), "new")
+	eq(inputs, 7)
+end)
+
+test("search box: debounced search and clear button", function()
+	local FK, _, stack = kit()
+	local searches = {}
+	local s = stack:Add(FK.SearchBox(stack, { onSearch = function(t) searches[#searches + 1] = t end }))
+	H.Advance(0)
+	H.Enter(s.box, "lin")
+	eq(searches, {})
+	H.Advance(0.3)
+	H.Click(s.clear.button)
+	eq(searches, { "lin", "" })
+end)
+
+test("dropdown: opens a list, picks, closes; escape closes", function()
+	local FK, _, stack = kit()
+	local got
+	local d = stack:Add(FK.Dropdown(stack, { items = { { value = "s", label = "Say" }, { value = "g", label = "Guild" } }, value = "s", onChange = function(v) got = v end }))
+	H.Advance(0)
+	eq(d.text:GetText(), "Say")
+	H.Click(d.button)
+	ok(FK.Popup.frame:IsShown())
+	FK.Popup:Pick("Guild")
+	eq(got, "g")
+	eq(d.text:GetText(), "Guild")
+	ok(not FK.Popup.frame:IsShown())
+	H.Click(d.button)
+	H.Click(FK.Popup.catcher) -- a click anywhere else
+	ok(not FK.Popup.frame:IsShown())
+	H.Click(d.button)
+	H.Key("ESCAPE") -- closes the list (and, as every Escape in the client, the window with it)
+	ok(not FK.Popup.frame:IsShown())
+end)
+
+test("multi dropdown stays open and returns a set", function()
+	local FK, _, stack = kit()
+	local got
+	local d = stack:Add(FK.MultiDropdown(stack, { items = { "Mage", "Priest", "Rogue" }, onChange = function(v) got = v end }))
+	H.Advance(0)
+	H.Click(d.button)
+	FK.Popup:Pick("Mage")
+	FK.Popup:Pick("Rogue")
+	ok(FK.Popup.frame:IsShown())
+	eq(got, { Mage = true, Rogue = true })
+	FK.Popup:Pick("Mage")
+	eq(got, { Rogue = true })
+	eq(d.text:GetText(), "Rogue")
+end)
+
+test("a list of preset numbers raises the slider warning", function()
+	local FK, _, stack = kit()
+	stack:Add(FK.Dropdown(stack, { label = "Range", items = { "20 yd", "40 yd", "60 yd", "80 yd" } }))
+	eq(#FK.warnings, 1)
+	ok(FK.warnings[1]:find("ui%-enum%-should%-be%-slider"))
+	stack:Add(FK.Dropdown(stack, { items = { "Say", "Party", "Guild" } }))
+	stack:Add(FK.Segmented(stack, { items = { "1x", "2x" } })) -- two choices are fine
+	eq(#FK.warnings, 1)
+end)
+
+test("segmented and radio group select one", function()
+	local FK, _, stack = kit()
+	local a, b
+	local seg = stack:Add(FK.Segmented(stack, { items = { "Left", "Right" }, value = "Left", onChange = function(v) a = v end }))
+	local radio = stack:Add(FK.RadioGroup(stack, { items = { "Always", "Never" }, value = "Always", onChange = function(v) b = v end }))
+	H.Advance(0)
+	H.Click(seg.segments[2])
+	H.Click(radio.radios[2])
+	eq({ a, b }, { "Right", "Never" })
+end)
+
+test("colour swatch: pick applies, cancel restores", function()
+	local FK, _, stack = kit()
+	local got
+	local c = stack:Add(FK.ColorSwatch(stack, { label = "Colour", value = { 1, 0, 0 }, onChange = function(v) got = v end }))
+	H.Click(c.button)
+	H.PickColor(0, 1, 0)
+	eq(got, { 0, 1, 0 })
+	H.Click(c.button)
+	H.PickColor(0, 0, 1)
+	H.Click(c.button)
+	H.CancelColor()
+	eq(c:GetValue(), { 0, 0, 1 })
+end)
+
+test("keybind button: captures a combination, right-click clears", function()
+	local FK, _, stack = kit()
+	local got = "unset"
+	local k = stack:Add(FK.KeybindButton(stack, { onChange = function(v) got = v end }))
+	H.Advance(0)
+	H.Click(k.button)
+	eq(k.text:GetText(), "Press a key...")
+	H.modifiers.CTRL = true
+	H.Key("LCTRL")
+	H.Key("K")
+	eq(got, "CTRL-K")
+	H.Click(k.button, "RightButton")
+	eq(got, nil)
+end)
+
+test("progress bar shows secret values without reading them", function()
+	local FK, _, stack = kit()
+	local bar = stack:Add(FK.ProgressBar(stack, { min = 0, max = 4000, format = "%d / %d" }))
+	H.SetCombat(true)
+	bar:SetValue(UnitHealth("player"), UnitHealthMax("player"))
+	ok(issecretvalue(bar.bar:GetValue()))
+	ok(issecretvalue(bar.text:GetText()))
+end)
+
+test("window: drag stores position, reload restores it, escape closes", function()
+	local FK = H.Start(KIT).FK
+	local db = FK:NewDB("KitTestDB", { profile = {} })
+	local win = FK.Window(UIParent, { title = "Saved", width = 300, height = 200, saved = { db, "profile.window" }, resizable = true })
+	win:Open()
+	H.Advance(0)
+	H.Drag(win.bar, 120, -60)
+	H.Drag(win.grip, 50, -30)
+	local rect = { win:GetRect() }
+	eq({ rect[3], rect[4] }, { 350, 230 })
+	H.Key("ESCAPE")
+	ok(not win:IsShown())
+	-- the same code again after /reload
+	FK = H.Reload().FK
+	db = FK:NewDB("KitTestDB", { profile = {} })
+	win = FK.Window(UIParent, { title = "Saved", width = 300, height = 200, saved = { db, "profile.window" }, resizable = true })
+	eq({ win:GetRect() }, rect)
+end)
+
+test("window: a saved position that is off screen is discarded", function()
+	H.saved.KitTestDB = { profiles = { Default = { window = { point = "TOPLEFT", relPoint = "TOPLEFT", x = 5000, y = -100 } } } }
+	local FK = H.Start(KIT).FK
+	local db = FK:NewDB("KitTestDB", { profile = {} })
+	local win = FK.Window(UIParent, { width = 300, height = 200, saved = { db, "profile.window" } })
+	eq({ win:GetRect() }, { 533, 284, 300, 200 })
+end)
+
+test("FK.Build creates a tree from data and returns references", function()
+	local FK, win = kit()
+	local root, refs = FK.Build(win.content, { "Panel", title = "Built", points = { { "TOPLEFT" }, { "TOPRIGHT" } }, children = {
+		{ "Slider", id = "range", min = 5, max = 40, value = 20 },
+		{ "Row", children = { { "Button", text = "OK", id = "ok" }, { "Button", text = "Cancel" } } },
+	} })
+	H.Advance(0)
+	eq(refs.range:GetValue(), 20)
+	ok(refs.ok:GetRight() <= root:GetRight())
+	eq(H.LayoutIssues(win), {})
+end)
+
+test("grid and flow place children in rows", function()
+	local FK, win = kit()
+	local grid = FK.Grid(win.content, { columns = 2, points = { { "TOPLEFT" }, { "TOPRIGHT" } } })
+	local a = grid:Add(FK.CheckBox(grid, { label = "One" }))
+	local b = grid:Add(FK.CheckBox(grid, { label = "Two" }))
+	local c = grid:Add(FK.CheckBox(grid, { label = "Three" }))
+	H.Advance(0)
+	eq(a:GetTop(), b:GetTop())
+	ok(b:GetLeft() > a:GetLeft() and c:GetTop() < a:GetTop())
+end)

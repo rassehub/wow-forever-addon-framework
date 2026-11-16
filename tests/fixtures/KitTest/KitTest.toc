@@ -1,0 +1,6 @@
+## Interface: 16001
+## Title: KitTest
+## Notes: Host addon for ForeverKit's own tests: loads the library and nothing else.
+## SavedVariables: KitTestDB
+
+Libs\ForeverKit\ForeverKit.xml

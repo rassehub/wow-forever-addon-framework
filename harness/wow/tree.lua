@@ -87,9 +87,15 @@ function H.LayoutIssues(root)
 		end
 		return false
 	end
+	local wx, wy, ww, wh -- the top-level window being walked
 	local function walk(f)
 		if not f[0].shown then return end
 		local fx, fy, fw, fh = box(f)
+		if f[0].parent == UIParent then wx, wy, ww, wh = fx, fy, fw, fh end
+		if fx and wx and f[0].parent ~= UIParent and fw > 0 and fh > 0 and not clipped(f)
+			and (fx < wx - 2 or fy < wy - 2 or fx + fw > wx + ww + 2 or fy + fh > wy + wh + 2) then
+			add(f, "outside its window")
+		end
 		if not fx then
 			if f ~= UIParent then add(f, "unanchored frame") end
 		elseif f[0].parent == UIParent and fw > 0 and fh > 0 and f[0].type ~= "GameTooltip" then

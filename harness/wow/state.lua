@@ -57,17 +57,23 @@ function H.Advance(seconds)
 end
 
 function H.FlushSizeChanged()
-	for _, f in ipairs({ unpack(H.frames) }) do
-		local s = f[0]
-		if s.scripts.OnSizeChanged then
-			local w, h = f:GetSize()
-			if s.lastW ~= w or s.lastH ~= h then
-				local first = s.lastW == nil
-				s.lastW, s.lastH = w, h
-				if not first then s.scripts.OnSizeChanged(f, w, h) end
+	-- a handler may resize other frames: repeat until the layout is stable
+	for _ = 1, 20 do
+		local changed = false
+		for _, f in ipairs({ unpack(H.frames) }) do
+			local s = f[0]
+			if s.scripts.OnSizeChanged then
+				local w, h = f:GetSize()
+				if s.lastW ~= w or s.lastH ~= h then
+					s.lastW, s.lastH = w, h
+					changed = true
+					s.scripts.OnSizeChanged(f, w, h)
+				end
 			end
 		end
+		if not changed then return end
 	end
+	error("layout does not settle: OnSizeChanged handlers keep resizing each other", 0)
 end
 
 ---------------------------------------------------------------------------------------------

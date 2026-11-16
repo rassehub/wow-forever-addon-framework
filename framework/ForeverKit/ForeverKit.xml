@@ -1,0 +1,20 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<Script file="Core\Init.lua"/>
+	<Script file="Core\Util.lua"/>
+	<Script file="Core\Events.lua"/>
+	<Script file="Core\Timer.lua"/>
+	<Script file="Core\Slash.lua"/>
+	<Script file="Core\Locale.lua"/>
+	<Script file="Core\DB.lua"/>
+	<Script file="Core\Theme.lua"/>
+	<Script file="Core\Widget.lua"/>
+	<Script file="Themes\Base.lua"/>
+	<Script file="Themes\Pixel.lua"/>
+	<Script file="Themes\Vanilla.lua"/>
+	<Script file="Widgets\Layout.lua"/>
+	<Script file="Widgets\Basic.lua"/>
+	<Script file="Widgets\Slider.lua"/>
+	<Script file="Widgets\Input.lua"/>
+	<Script file="Widgets\Choice.lua"/>
+	<Script file="Widgets\Window.lua"/>
+</Ui>

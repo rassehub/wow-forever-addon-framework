@@ -12,8 +12,8 @@ notes, commit.** Research that the decisions rest on is in [`research/`](researc
 - [x] **Step 0** — Research, plan, repo skeleton
 - [x] **Step 1** — Toolchain: local Lua 5.1, `fk` CLI skeleton, local config
 - [x] **Step 2** — Emulator (`harness/`): frames, layout, TOC loader, events, clock, input, tree dump, test runner
-- [ ] **Step 3** — ForeverKit core: namespace, events, DB, slash, timers, locale, theme engine
-- [ ] **Step 4** — Widgets I (controls): window, panel, text, button, checkbox, toggle, slider family, edit boxes, dropdowns, colour, keybind, progress
+- [x] **Step 3** — ForeverKit core: namespace, events, DB, slash, timers, locale, theme engine
+- [x] **Step 4** — Widgets I (controls): window, panel, text, button, checkbox, toggle, slider family, edit boxes, dropdowns, colour, keybind, progress
 - [ ] **Step 5** — Widgets II (collections): scroll list, table, tree, composite rows (toggle+slider, toggle+list…), reorder list, checklist, tabs, dialogs, menu, toast, bars, icon grid, money
 - [ ] **Step 6** — Options DSL: declarative settings → generated panel, Settings-panel registration, profiles; UI lint rules
 - [ ] **Step 7** — Themes (`vanilla`, `pixel`, `glass`, `parchment`), HTML preview renderer, `FKGallery` showcase addon
@@ -208,3 +208,36 @@ columns, selection), `Tree` (collapsible, lazy), composite rows — `ToggleRow`,
 - Known limits: text width is estimated; `secret == x` cannot raise in Lua 5.1 (lint must catch
   it); a region with no anchors is treated as not drawn; animations only fire `OnFinished`.
 - `tests/fixtures/Plain` is a primitives-only addon used by `tests/harness_test.lua`.
+
+### Steps 3–4 (2026-11-16)
+- Library lives in `framework/ForeverKit/`, loaded through `ForeverKit.xml` (a list of
+  `<Script>` tags; add every new file there). Test host addon: `tests/fixtures/KitTest`
+  (`Libs/ForeverKit` is a symlink to the library).
+- Core API: `FK:On/Once/Off/Emit`, `FK:OnLoad/OnLogin`, `FK:NewDB(sv, defaults, opts)` →
+  `db.profile/global/char`, `db:Get/Set/OnChange/Reset`, profiles; `FK:After/Every/Debounce/
+  Throttle`, `FK:Slash`, `FK.L`/`FK:Locale`, `FK:Print`, `FK:Warn(code, msg)` (→ `FK.warnings`),
+  utilities `FK.Money/Number/Duration/Round/Clamp/Copy/Equal/GetPath/SetPath/Pool/Pixel`.
+- Widget contract (`Core/Widget.lua`): `FK.Define(kind, methods, build)` creates
+  `FK.<Kind>(parent, opts)`; a widget is a plain Frame + mixed-in methods; `SetValue` is silent,
+  user changes call `opts.onChange(value, widget)`; `Restyle()` re-applies the theme;
+  `self:Text(role, color, parent)` for themed font strings; `self:Clickable(parent, onClick)`
+  for themed buttons; `self:Caption(label)`; `self:Changed()` tells the parent container.
+  Each widget definition carries a `---@widget Name  description. opts: ...` comment: step 12
+  generates the catalog from these.
+- Themes (`Core/Theme.lua`, `Themes/`): `base` (abstract, full token reference), `pixel`,
+  `vanilla`. `Theme.Paint(frame, spec)`, `Theme.PaintState`, `Theme.Texture`, `Theme.Font`,
+  `Theme.Icon`, `Theme:Set(name)`, `Theme.opacity`, `Theme.fontDelta`.
+- Widgets so far: Stack, Row, Grid, Flow, `FK.Build`; Label, Heading, Divider, Spacer, Button,
+  IconButton, CheckBox, Toggle, ProgressBar; Slider, RangeSlider, Stepper; EditBox, SearchBox;
+  Dropdown, MultiDropdown, Segmented, RadioGroup, ColorSwatch, KeybindButton, `FK.Popup`;
+  Window, Panel.
+- Dev warning `ui-enum-should-be-slider` fires at runtime when Dropdown/Segmented/RadioGroup
+  get three or more items that are all numbers with the same unit.
+- Escape closes every frame in `UISpecialFrames` at once (client behaviour): an open dropdown
+  list and its window close together. Left as is; a keyboard-capturing popup would need
+  `SetPropagateKeyboardInput`, which I believe is restricted in combat (unverified).
+- **To verify in step 10 (in game):** every texture path used by `Themes/Vanilla.lua` and the
+  icon paths in `Themes/Base.lua` exist in the Forever client; they were chosen from memory of
+  the classic art set.
+- Emulator additions: slider thumb and status-bar textures are positioned as the engine does;
+  `H.LayoutIssues` also reports frames outside their window.

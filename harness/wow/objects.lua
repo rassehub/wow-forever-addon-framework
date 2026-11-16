@@ -270,7 +270,31 @@ local function resolve(o)
 	local w, h = s.width and s.width * es, s.height and s.height * es
 	local l, b
 
-	if s.scrollOwner then
+	if s.thumbOf then
+		-- a slider's thumb texture is placed by the engine according to the value
+		local sl, sb, sw, sh = resolve(s.thumbOf)
+		local so = s.thumbOf[0]
+		if sl then
+			w, h = w or 16 * es, h or 16 * es
+			local span = (so.max or 0) - (so.min or 0)
+			local pct = span > 0 and ((so.value or so.min or 0) - so.min) / span or 0
+			if so.orientation == "VERTICAL" or so.orientation == nil then
+				l, b = sl + (sw - w) / 2, sb + sh - h - pct * (sh - h)
+			else
+				l, b = sl + pct * (sw - w), sb + (sh - h) / 2
+			end
+		end
+	elseif s.barOf then
+		-- a status bar's texture is stretched by the engine to the filled part
+		local sl, sb, sw, sh = resolve(s.barOf)
+		local so = s.barOf[0]
+		if sl then
+			local min, max, value = so.min or 0, so.max or 1, so.value or 0
+			local pct = max > min and math.max(0, math.min(1, (value - min) / (max - min))) or 0
+			l, b, w, h = sl, sb, sw * pct, sh
+			if so.orientation == "VERTICAL" then w, h = sw, sh * pct end
+		end
+	elseif s.scrollOwner then
 		-- a scroll child sits at its scroll frame's top-left, shifted by the scroll offsets
 		local ol, ob, _, oh = resolve(s.scrollOwner)
 		if ol then
@@ -896,6 +920,8 @@ function Slider:SetThumbTexture(tex)
 		tex = t
 	end
 	self[0].thumb = tex
+	tex[0].thumbOf = self
+	dirty()
 end
 function Slider:GetThumbTexture() return self[0].thumb end
 -- userInput is true only for values that come from H.SetSliderByUser / drags.
@@ -908,6 +934,7 @@ function Slider:SetValue(value, treatAsMouseEvent)
 	if treatAsMouseEvent and s.obeyStep then value = snap(s, value) end
 	if s.value == value then return end
 	s.value = value
+	dirty()
 	run(self, "OnValueChanged", value, treatAsMouseEvent == true)
 end
 function Slider:GetValue() return self[0].value or self[0].min or 0 end
@@ -931,6 +958,7 @@ function StatusBar:SetValue(v)
 	local s = self[0]
 	if H.IsSecret(v) then s.secretValue = true end
 	s.value = H.Reveal(v)
+	dirty()
 	if not s.secretValue then run(self, "OnValueChanged", v) end
 end
 function StatusBar:GetValue()
@@ -945,6 +973,8 @@ function StatusBar:SetStatusBarTexture(tex)
 		tex = t
 	end
 	self[0].barTexture = tex
+	tex[0].barOf = self
+	dirty()
 end
 function StatusBar:GetStatusBarTexture() return self[0].barTexture end
 function StatusBar:SetStatusBarColor(r, g, b, a) self[0].barColor = { r, g, b, a or 1 } end
