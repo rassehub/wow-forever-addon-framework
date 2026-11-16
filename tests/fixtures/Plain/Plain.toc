@@ -1,0 +1,6 @@
+## Interface: 16001
+## Title: Plain
+## Notes: Emulator smoke-test addon built from bare primitives.
+## SavedVariables: PlainDB
+
+Plain.lua

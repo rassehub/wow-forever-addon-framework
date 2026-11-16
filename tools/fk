@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+"""fk - ForeverKit command line. Python 3 standard library only.
+
+Run `tools/fk <command> -h` for details of a command.
+"""
+import argparse
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+LUA = ROOT / ".tools" / "lua"
+CONFIG = ROOT / ".fk.local.json"
+HARNESS = ROOT / "harness"
+
+
+def die(msg):
+    sys.exit(f"fk: {msg}")
+
+
+def load_config():
+    return json.loads(CONFIG.read_text()) if CONFIG.exists() else {}
+
+
+def wow_dir(required=True):
+    """The _forever_ directory of the WoW install, from $FK_WOW_DIR or .fk.local.json."""
+    path = os.environ.get("FK_WOW_DIR") or load_config().get("wow_dir")
+    if path and (Path(path) / "Interface").is_dir():
+        return Path(path)
+    if required:
+        die("WoW directory not set. Run: tools/fk doctor --wow '/path/to/World of Warcraft/_forever_'")
+    return None
+
+
+def lua(*args, check=True, capture=False):
+    if not LUA.exists():
+        die("Lua is not built yet. Run: tools/setup.sh")
+    env = dict(os.environ, LUA_PATH=f"{HARNESS}/?.lua;{HARNESS}/?/init.lua", FK_ROOT=str(ROOT))
+    result = subprocess.run([str(LUA), *map(str, args)], cwd=ROOT, env=env,
+                            capture_output=capture, text=True)
+    if check and result.returncode != 0:
+        if capture:
+            sys.stderr.write(result.stdout + result.stderr)
+        sys.exit(result.returncode)
+    return result
+
+
+def cmd_doctor(args):
+    if args.wow:
+        path = Path(args.wow).expanduser().resolve()
+        if not (path / "Interface").is_dir():
+            die(f"{path} has no Interface folder; point at the _forever_ directory")
+        CONFIG.write_text(json.dumps(dict(load_config(), wow_dir=str(path)), indent=2) + "\n")
+    ok = True
+
+    def report(good, label, detail):
+        nonlocal ok
+        ok = ok and good
+        print(f"  [{'ok' if good else '!!'}] {label}: {detail}")
+
+    report(LUA.exists(), "Lua 5.1", LUA if LUA.exists() else "missing, run tools/setup.sh")
+    wow = wow_dir(required=False)
+    report(wow is not None, "WoW Forever", wow or "not set (only needed for `fk link`, `fk live`, `fk data`)")
+    if wow:
+        addons = wow / "Interface" / "AddOns"
+        names = sorted(p.name for p in addons.iterdir() if p.is_dir())
+        report(True, "AddOns", f"{len(names)} installed")
+        accounts = [p for p in (wow / "WTF" / "Account").glob("*") if p.is_dir() and p.name != "SavedVariables"]
+        # the account folder name is private: report the count only
+        report(bool(accounts), "WTF accounts", f"{len(accounts)} found")
+    sys.exit(0 if ok else 1)
+
+
+def test_files(paths):
+    if paths:
+        found = []
+        for p in map(Path, paths):
+            found += sorted(p.rglob("*.lua")) if p.is_dir() else [p]
+        return found
+    return sorted(ROOT.glob("tests/*.lua")) + sorted(ROOT.glob("examples/*/tests/*.lua"))
+
+
+def cmd_test(args):
+    """One Lua process per test file, so files cannot affect each other."""
+    files = test_files(args.paths)
+    if not files:
+        die("no test files found")
+    failed = 0
+    for f in files:
+        extra = ["--verbose"] if args.verbose else []
+        result = lua(HARNESS / "run.lua", *extra, f, check=False, capture=True)
+        out = (result.stdout + result.stderr).strip()
+        rel = os.path.relpath(f, ROOT)
+        if result.returncode != 0:
+            failed += 1
+            print(f"{rel}\n{out}")
+        else:
+            print(f"{rel}: {out.splitlines()[-1]}" if not args.verbose else f"{rel}\n{out}")
+    sys.exit(1 if failed else 0)
+
+
+def main():
+    parser = argparse.ArgumentParser(prog="fk", description=__doc__.splitlines()[0])
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    p = sub.add_parser("doctor", help="check the toolchain and local configuration")
+    p.add_argument("--wow", help="set the path of the _forever_ directory")
+    p.set_defaults(func=cmd_doctor)
+
+    p = sub.add_parser("test", help="run emulator tests (default: tests/ and examples/*/tests/)")
+    p.add_argument("paths", nargs="*", help="test files or directories")
+    p.add_argument("-v", "--verbose", action="store_true", help="list passing tests and chat output")
+    p.set_defaults(func=cmd_test)
+
+    args = parser.parse_args()
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()

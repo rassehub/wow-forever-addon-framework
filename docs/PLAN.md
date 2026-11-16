@@ -10,8 +10,8 @@ notes, commit.** Research that the decisions rest on is in [`research/`](researc
 ## Status
 
 - [x] **Step 0** — Research, plan, repo skeleton
-- [ ] **Step 1** — Toolchain: local Lua 5.1, `fk` CLI skeleton, local config
-- [ ] **Step 2** — Emulator (`harness/`): frames, layout, TOC loader, events, clock, input, tree dump, test runner
+- [x] **Step 1** — Toolchain: local Lua 5.1, `fk` CLI skeleton, local config
+- [x] **Step 2** — Emulator (`harness/`): frames, layout, TOC loader, events, clock, input, tree dump, test runner
 - [ ] **Step 3** — ForeverKit core: namespace, events, DB, slash, timers, locale, theme engine
 - [ ] **Step 4** — Widgets I (controls): window, panel, text, button, checkbox, toggle, slider family, edit boxes, dropdowns, colour, keybind, progress
 - [ ] **Step 5** — Widgets II (collections): scroll list, table, tree, composite rows (toggle+slider, toggle+list…), reorder list, checklist, tabs, dialogs, menu, toast, bars, icon grid, money
@@ -190,3 +190,21 @@ columns, selection), `Tree` (collapsible, lazy), composite rows — `ToggleRow`,
   slim-border option, opacity/scale/font sliders, column grips, autocomplete).
 - Machine has gcc, make, curl, python3, node, firefox, wine. No lua, luarocks, xdotool.
 - Never write the Battle.net account folder name (under `WTF/Account/`) into the repo.
+
+### Steps 1–2 (2026-11-16)
+- `tools/setup.sh` builds Lua 5.1.5 into `.tools/lua` (checksum verified). `tools/fk doctor`,
+  `tools/fk test [paths] [-v]` (one Lua process per test file).
+- Emulator is `harness/wow/` (`state`, `objects`, `sim`, `api`, `loader`, `tree`, `init`);
+  `harness/run.lua` is the test runner. Test files get `H`, `ROOT`, `test`, `eq`, `near`, `ok`,
+  `raises`; the client is reset before each test.
+- Test vocabulary: `H.Start(dir)` → ns, `H.Reload()` → new ns, `H.Click/Hover/Drag/Slide/Wheel`,
+  `H.Enter(box, text)`, `H.Type`, `H.Key`, `H.Slash`, `H.Fire(event, …)`, `H.Advance(seconds)`,
+  `H.SetCombat(bool)`, `H.SetBag`, `H.CacheItem`, `H.ShowItemTooltip`, `H.TooltipLines()`,
+  `H.PickColor/CancelColor`, `H.Receive` (addon message), `H.Stub("C_X.Fn", fn)`,
+  `H.Tree(root)`, `H.LayoutIssues(root)`, `H.Find(root, textOrName)`, `H.LeakedGlobals(addon)`,
+  `H.fixtures` (player, items, bags, spells, cvars).
+- Deliberately strict: unknown templates, unknown `C_*` members, wrong script names, unsaveable
+  SavedVariables, clicks on covered/hidden frames and anchor cycles all raise.
+- Known limits: text width is estimated; `secret == x` cannot raise in Lua 5.1 (lint must catch
+  it); a region with no anchors is treated as not drawn; animations only fire `OnFinished`.
+- `tests/fixtures/Plain` is a primitives-only addon used by `tests/harness_test.lua`.
