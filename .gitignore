@@ -1,0 +1,6 @@
+.tools/
+.fk.local.json
+build/
+*.zip
+.preview/
+__pycache__/
