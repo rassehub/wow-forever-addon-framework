@@ -16,8 +16,15 @@ end
 
 ---@widget Window  Movable top-level window: title, close button, Escape closes it, remembers position/size. opts: title, width, height, resizable = { minWidth, minHeight, maxWidth, maxHeight } or true, saved = { db, "profile.window" } (where position, size and scale are stored), escClose (default true), strata, buttons = { { icon, tooltip, onClick } } extra title-bar buttons, onShow, onHide. Put children in window.content. Methods: Toggle, Open, Close, SetTitle, SetLocked, ResetPosition, SetWindowScale.
 FK.Define("Window", {
-	Open = function(self) self:Show() end,
-	Close = function(self) self:Hide() end,
+	Open = function(self)
+		if FK.inWorld then return self:Show() end
+		-- opened during login: the client's CloseAllWindows would hide it right away
+		if not self.openPending then
+			self.openPending = true
+			FK:Once("fk.world", function() if self.openPending then self.openPending = nil self:Show() end end)
+		end
+	end,
+	Close = function(self) self.openPending = nil self:Hide() end,
 	Toggle = function(self) self:SetShown(not self:IsShown()) end,
 	SetTitle = function(self, text) self.title:SetText(text) end,
 	-- A locked window cannot be moved or resized.

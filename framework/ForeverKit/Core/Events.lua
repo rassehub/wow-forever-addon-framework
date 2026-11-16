@@ -88,3 +88,14 @@ FK:On("PLAYER_LOGIN", function()
 	FK.loggedIn = true
 	for _, fn in ipairs(onLogin) do fn() end
 end)
+
+-- The default UI runs CloseAllWindows() on PLAYER_ENTERING_WORLD, which hides every
+-- Escape-closable window (verified in game, step 10). FK.inWorld turns true one frame later;
+-- "fk.world" tells windows opened at login to show then.
+FK:On("PLAYER_ENTERING_WORLD", function()
+	if FK.inWorld then return end
+	C_Timer.After(0, function()
+		FK.inWorld = true
+		FK:Emit("fk.world")
+	end)
+end)

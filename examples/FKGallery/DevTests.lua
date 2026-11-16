@@ -29,9 +29,18 @@ FKDev.Test(ADDON, "every texture path in themes and features exists", function(a
 	end
 end)
 
+-- Registered after Gallery.lua's login handler, so the window exists: remember who hides it.
+local hiddenBy
+FK:OnLogin(function()
+	ns.gallery.window:HookScript("OnHide", function()
+		hiddenBy = hiddenBy or (("at %.2fs after load, %s"):format(GetTime() - ns.loadedAt, debugstack(2, 12, 0)))
+	end)
+end)
+ns.loadedAt = GetTime()
+
 FKDev.Test(ADDON, "every theme switches without errors and keeps the window on screen", function(assert)
 	local g = ns.gallery
-	assert(g and g.window:IsShown(), "gallery window open")
+	assert(g and g.window:IsShown(), "gallery window open; hidden " .. tostring(hiddenBy))
 	local before = FK.Theme.name
 	for _, name in ipairs(FK.Theme:Names()) do
 		FK.Theme:Set(name)

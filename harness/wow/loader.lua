@@ -120,6 +120,11 @@ function H.Login()
 	H.loggedIn = true
 	H.Fire("PLAYER_LOGIN")
 	H.Fire("PLAYER_ENTERING_WORLD", true, false)
+	-- the default UI's own handler: CloseAllWindows() hides every UISpecialFrames window (seen in game)
+	for _, name in ipairs(UISpecialFrames) do
+		local f = _G[name]
+		if f and f:IsShown() then f:Hide() end
+	end
 	H.Advance(0)
 end
 

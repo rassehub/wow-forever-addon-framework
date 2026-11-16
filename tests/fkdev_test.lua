@@ -29,7 +29,8 @@ test("fkdev: runs registered tests, records errors, runs the queue once", functi
 	-- after the reload the same queue does not run again
 	H.Reload()
 	H.Advance(2)
-	ok(FKDevDB.sessions[1].run == nil)
+	local again = FKDevDB.sessions[1].run
+	ok(again == nil or again.id ~= "q1", "q1 does not run twice") -- Queue.lua may hold a live queue
 	eq(#FKDevDB.sessions, 2)
 	H.missingFiles = nil
 end)

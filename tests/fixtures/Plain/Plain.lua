@@ -31,7 +31,10 @@ end)
 ns.button = button
 
 f:RegisterEvent("ADDON_LOADED")
-f:SetScript("OnEvent", function(_, _, addon)
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:SetScript("OnEvent", function(_, event, addon)
+	-- the default UI closes UISpecialFrames windows on entering the world: show again after it
+	if event == "PLAYER_ENTERING_WORLD" then C_Timer.After(0, function() f:Show() end) return end
 	if addon ~= name then return end
 	PlainDB = PlainDB or { clicks = 0 }
 	count:SetText("Clicks: " .. PlainDB.clicks)
