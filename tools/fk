@@ -6,6 +6,7 @@ Run `tools/fk <command> -h` for details of a command.
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -100,6 +101,12 @@ def cmd_test(args):
             print(f"{rel}\n{out}")
         else:
             print(f"{rel}: {out.splitlines()[-1]}" if not args.verbose else f"{rel}\n{out}")
+    if not args.paths:
+        # shell tests of the tooling itself
+        for script in sorted(ROOT.glob("tests/*.sh")):
+            result = subprocess.run([str(script)], capture_output=True, text=True)
+            print((result.stdout + result.stderr).strip())
+            failed += result.returncode != 0
     sys.exit(1 if failed else 0)
 
 
@@ -129,6 +136,99 @@ def cmd_tree(args):
     sys.exit(result.returncode)
 
 
+# Static lint rules: (code, level, regex, message). Applied per line, comments stripped.
+LINT_RULES = [
+    ("deprecated-api", "error", r"(?<![\w.:])(GetItemInfo|GetItemInfoInstant|GetItemCount|GetItemIcon|GetContainerItemInfo|GetContainerNumSlots|GetContainerItemLink|GetAddOnMetadata|IsAddOnLoaded|GetSpellInfo|GetSpellTexture|SendAddonMessage|RegisterAddonMessagePrefix|InterfaceOptions_AddCategory|InterfaceOptionsFrame_OpenToCategory)\s*\(",
+     "{0} was removed from the modern client; use its C_* namespace (C_Item, C_Container, C_AddOns, C_Spell, C_ChatInfo) or Settings.*"),
+    ("legacy-dropdown", "error", r"\bUIDropDownMenu_\w+", "UIDropDownMenu is legacy; use FK.Dropdown / FK.Menu"),
+    ("blizzard-template", "warning", r"CreateFrame\([^)]*,[^)]*,[^)]*,\s*\"(?!BackdropTemplate\"|Secure)([^\"]+)\"",
+     "Blizzard template {0}: ForeverKit widgets are built from primitives so themes and the emulator cover them; use an FK widget"),
+    ("secret-compute", "error", r"\b(UnitHealth|UnitHealthMax|UnitPower|UnitPowerMax)\s*\([^)]*\)\s*(==|~=|<=|>=|<|>|\+|-|\*|/|%)",
+     "{0}() returns a secret value in combat: comparing or computing with it raises an error. Pass it straight to a StatusBar/FontString (FK.ProgressBar), or guard with issecretvalue()"),
+    ("secret-compute", "error", r"(==|~=|<=|>=|<|>|\+|\*|/)\s*(UnitHealth|UnitHealthMax|UnitPower|UnitPowerMax)\s*\(",
+     "{1}() returns a secret value in combat: comparing or computing with it raises an error"),
+    ("hardcoded-font", "warning", r":SetFont\(\s*\"", "hard-coded font file breaks Cyrillic/CJK clients: use FK.Theme.Font or take the file from a font object's GetFont()"),
+    ("global-function", "warning", r"^function\s+[A-Za-z_]\w*\s*\(", "global function: declare it local or on the addon namespace"),
+    ("getglobal", "error", r"\b(getglobal|setglobal)\s*\(", "{0} no longer exists; use _G[name]"),
+    ("combat-settings", "warning", r"Settings\.OpenToCategory", "Settings.OpenToCategory is blocked in combat; open the addon's own options window (options:Open())"),
+]
+ENUM_ITEMS = re.compile(r"items\s*=\s*\{([^{}]*)\}")
+NUMERIC_LABEL = re.compile(r"^\s*-?\d[\d.,]*\s*(.*?)\s*$")
+
+
+def lint_static(addon):
+    """Yields (path, line, level, code, message)."""
+    name = addon.name
+    tocs = sorted(addon.glob("*.toc"))
+    if not tocs:
+        yield addon, 0, "error", "toc-missing", f"no .toc file in {addon}"
+        return
+    toc = next((t for t in tocs if t.stem in (name, name + "_Forever", name + "_Camelot")), None)
+    if toc is None:
+        yield tocs[0], 0, "error", "toc-name", f"the TOC must be named {name}.toc (the folder's name)"
+        toc = tocs[0]
+    meta, listed = {}, []
+    for n, line in enumerate(toc.read_text(encoding="utf-8-sig").splitlines(), 1):
+        m = re.match(r"##\s*([^:]+?)\s*:\s*(.*?)\s*$", line)
+        if m:
+            meta[m.group(1)] = m.group(2)
+        elif line.strip() and not line.lstrip().startswith("#"):
+            rel = re.sub(r"\s*\[.*\]\s*$", "", line.strip()).replace("\\", "/")
+            listed.append(rel)
+            if not (addon / rel).exists():
+                yield toc, n, "error", "toc-file-missing", f"{rel} is listed but does not exist (check upper/lower case: the game is case-insensitive, your tests are not)"
+    if "16001" not in meta.get("Interface", ""):
+        yield toc, 1, "error", "toc-interface", "## Interface must include 16001 for WoW Forever"
+    for field in ("Title", "Notes", "Version"):
+        if field not in meta:
+            yield toc, 1, "warning", "toc-field", f"## {field} is missing"
+    saved = set(re.split(r"[,\s]+", meta.get("SavedVariables", "") + "," + meta.get("SavedVariablesPerCharacter", ""))) - {""}
+
+    sources = sorted(p for p in addon.rglob("*.lua") if "Libs" not in p.relative_to(addon).parts and "tests" not in p.relative_to(addon).parts)
+    listed_lower = {x.lower() for x in listed}
+    for path in sources:
+        rel = path.relative_to(addon).as_posix()
+        if rel.lower() not in listed_lower and not any(x.lower().endswith(".xml") for x in listed):
+            yield path, 0, "warning", "toc-unlisted", f"{rel} is not listed in the TOC, so the game never loads it"
+        text = path.read_text(encoding="utf-8-sig")
+        for m in re.finditer(r"NewDB\(\s*\"(\w+)\"", text):
+            if m.group(1) not in saved:
+                yield path, text.count("\n", 0, m.start()) + 1, "error", "savedvariable-undeclared", f"{m.group(1)} is used by FK:NewDB but not declared in ## SavedVariables: settings would be lost on logout"
+        for m in ENUM_ITEMS.finditer(text):
+            labels = re.findall(r"\"([^\"]*)\"|(?<![\w.])(-?\d[\d.]*)(?![\w.])", m.group(1))
+            labels = [a or b for a, b in labels]
+            units = [NUMERIC_LABEL.match(x) for x in labels]
+            if len(labels) >= 3 and all(units) and len({u.group(1) for u in units}) == 1:
+                yield path, text.count("\n", 0, m.start()) + 1, "error", "ui-enum-should-be-slider", f"a choice between preset numbers ({labels[0]} ... {labels[-1]}): use a slider (type = \"slider\" / FK.Slider) with min, max and step"
+        for n, line in enumerate(text.splitlines(), 1):
+            code = re.sub(r"--.*$", "", line)
+            for rule, level, pattern, message in LINT_RULES:
+                m = re.search(pattern, code)
+                if m:
+                    yield path, n, level, rule, message.format(*[g or "" for g in m.groups()])
+
+
+def cmd_lint(args):
+    addon = addon_dir(args.addon)
+    findings = list(lint_static(addon))
+    wow = wow_dir(required=False)
+    extra = ["--addons-path", wow / "Interface" / "AddOns"] if wow else []
+    result = lua(HARNESS / "cli.lua", "lint", addon, *extra, check=False, capture=True)
+    if result.returncode != 0:
+        findings.append((addon, 0, "error", "load-error", (result.stderr or result.stdout).strip().splitlines()[0] if (result.stderr or result.stdout).strip() else "the addon failed to load in the emulator"))
+    for line in result.stdout.splitlines():
+        parts = line.split("\t")
+        if len(parts) == 3:
+            findings.append((addon, 0, parts[0], parts[1], parts[2]))
+    errors = 0
+    for path, line, level, code, message in findings:
+        errors += level == "error"
+        where = os.path.relpath(path, ROOT) + (f":{line}" if line else "")
+        print(f"{where}: {level} [{code}] {message}")
+    print(f"{len(findings)} finding(s), {errors} error(s)")
+    sys.exit(1 if errors else 0)
+
+
 def screenshot(html, png, width, height):
     """PNG of an HTML file with headless Firefox (own throwaway profile, so a running Firefox is not disturbed)."""
     firefox = shutil.which("firefox")
@@ -152,7 +252,6 @@ def cmd_preview(args):
         lua(HARNESS / "cli.lua", "html", addon, *harness_args(args), "--out", html, *(["--full"] if args.full else []))
         print(html)
         if not args.no_png:
-            import re
             m = re.search(r"#screen\{position:relative;width:(\d+)px;height:(\d+)px", html.read_text())
             png = html.with_suffix(".png")
             screenshot(html, png, int(m.group(1)), int(m.group(2)))
@@ -182,6 +281,10 @@ def main():
     ui_args(p)
     p.add_argument("--textures", action="store_true", help="also list textures")
     p.set_defaults(func=cmd_tree)
+
+    p = sub.add_parser("lint", help="check an addon: TOC, removed APIs, secret-value misuse, UI rules, global leaks, layout")
+    p.add_argument("addon", help="addon folder, or the name of one in examples/ or addons/")
+    p.set_defaults(func=cmd_lint)
 
     p = sub.add_parser("preview", help="render an addon's UI to .preview/<name>.html and .png")
     ui_args(p)

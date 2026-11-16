@@ -47,7 +47,28 @@ local function mainWindow()
 	return best
 end
 
-if mode == "tree" then
+if mode == "lint" then
+	-- what only running the addon can tell: load, log in, call every slash command it registered
+	local name = dir:match("([^/]+)/*$")
+	local function report(level, code, message) realPrint(level .. "\t" .. code .. "\t" .. message) end
+	for cmdName, fn in pairs(SlashCmdList) do
+		local good, err = pcall(fn, "", { GetText = function() return "" end })
+		if not good then report("error", "slash-error", ("/%s raised: %s"):format(cmdName:lower(), tostring(err))) end
+	end
+	H.Advance(0.5)
+	for _, g in ipairs(H.LeakedGlobals(name)) do
+		report("error", "global-leak", ("global variable %q is created by the addon: make it local or put it on the addon namespace"):format(g))
+	end
+	for _, w in ipairs(H.warnings) do report("warning", "emulator", w) end
+	for _, issue in ipairs(H.LayoutIssues()) do report("warning", "layout", issue) end
+	if ns.FK then
+		for _, w in ipairs(ns.FK.warnings) do
+			local code, msg = w:match("^([%w%-]+): (.*)$")
+			report("error", code or "design", msg or w)
+		end
+	end
+	exit(0)
+elseif mode == "tree" then
 	realPrint(H.Tree(nil, { textures = opts.textures }))
 	local issues = H.LayoutIssues()
 	realPrint(("\n-- %d layout issue(s)"):format(#issues))

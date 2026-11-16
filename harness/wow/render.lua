@@ -269,11 +269,14 @@ html,body{margin:0;background:#111}
 %s
 </div>
 <script>
+// squeeze or stretch each text line to the width the emulator measured for it
 for (const el of document.querySelectorAll(".ln")) {
   const want = parseFloat(el.dataset.w), have = el.getBoundingClientRect().width;
   if (want > 0 && have > 0) {
-    el.style.transformOrigin = getComputedStyle(el.parentElement).textAlign === "center" ? "center" : getComputedStyle(el.parentElement).textAlign === "right" ? "right" : "left";
-    el.style.transform = "scaleX(" + Math.min(1.3, Math.max(0.7, want / have)) + ")";
+    const k = Math.min(1.3, Math.max(0.7, want / have));
+    el.innerHTML = "<span style='display:inline-block;white-space:nowrap;transform-origin:left;transform:scaleX(" + k + ")'>" + el.innerHTML + "</span>";
+    el.style.width = want + "px";
+    el.style.textAlign = "left";
   }
 }
 </script></body></html>

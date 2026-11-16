@@ -103,7 +103,7 @@ FK.Define("OptionRow", {
 	if opts.children then
 		self.body = FK.Stack(self, {})
 		self.body.fkContainer = self
-		self.refs = {}
+		self.refs = opts.refs or {} -- FK.Build shares its refs table, so nested ids are reachable from the root
 		self.body:Batch(function(body)
 			for _, spec in ipairs(opts.children) do body:Add(FK.Build(body, spec, self.refs)) end
 		end)

@@ -15,7 +15,7 @@ notes, commit.** Research that the decisions rest on is in [`research/`](researc
 - [x] **Step 3** — ForeverKit core: namespace, events, DB, slash, timers, locale, theme engine
 - [x] **Step 4** — Widgets I (controls): window, panel, text, button, checkbox, toggle, slider family, edit boxes, dropdowns, colour, keybind, progress
 - [x] **Step 5** — Widgets II (collections): scroll list, table, tree, composite rows (toggle+slider, toggle+list…), reorder list, checklist, tabs, dialogs, menu, toast, bars, icon grid, money
-- [ ] **Step 6** — Options DSL: declarative settings → generated panel, Settings-panel registration, profiles; UI lint rules
+- [x] **Step 6** — Options DSL: declarative settings → generated panel, Settings-panel registration, profiles; UI lint rules
 - [ ] **Step 7** — Themes (`vanilla`, `pixel`, `glass`, `parchment`), HTML preview renderer, `FKGallery` showcase addon
 - [ ] **Step 8** — Feature modules ("hooks"): tooltips, items, bags, minimap button + compartment, comms, combat queue, secrets helpers, movers, map pins, chat
 - [ ] **Step 9** — Game data: QuestieDB + Auctionator runtime bridges, offline `fk data` tools
@@ -259,3 +259,23 @@ columns, selection), `Tree` (collapsible, lazy), composite rows — `ToggleRow`,
 - `FK.Build` leaves `children` alone for widgets with `ownsChildren` (OptionRow family).
 - Layout rule learned: a widget that lays out an inner container and is itself told about that
   container's size changes needs a re-entrancy guard (see OptionRow.Arrange, ScrollArea.Layout).
+
+### Step 6 (2026-11-16)
+- `Widgets/Options.lua`: `FK:Options({ db, pages = {{ id, label, options = {...} }}, appearance =
+  "profile.ui", profiles = true })` → `:Open()/:Toggle()/:Refresh()`; also registers a category
+  in the game's Settings window (canvas built on first show; `blizzard = false` to skip).
+  Option types: header, text, toggle, slider, stepper, select, multiselect, segmented, color,
+  keybind, input, money, checklist, reorder, button, group. Modifiers: `requires`, `disabled`,
+  `hidden`, `toggleKey`, `requiresReload`, `onChange`, `get/set`.
+- `FK:BindAppearance(db, key)` + `FK.AppearanceDefaults`; `db:Export()/Import()` through
+  `FK.Serialize/Deserialize` (own parser, pasted text is never executed).
+- Sets (multiselect, checklist) are stored as `{ key = true/false }` so a default `true` can be
+  switched off; the binding converts.
+- `fk lint <addon>`: static rules live in `LINT_RULES` in `tools/fk` (toc-*, deprecated-api,
+  legacy-dropdown, blizzard-template, secret-compute, hardcoded-font, global-function,
+  getglobal, combat-settings, savedvariable-undeclared, ui-enum-should-be-slider) plus an
+  emulator pass (`harness/cli.lua lint`: loads, logs in, runs every slash command, reports
+  global-leak, layout issues, FK design warnings). `tests/fixtures/BadAddon` trips them all;
+  `tests/lint_test.sh` checks that (run by `fk test`).
+- Not done: search across options; the secret-value lint is a regex over four unit functions,
+  not data-flow analysis.

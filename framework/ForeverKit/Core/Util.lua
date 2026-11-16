@@ -130,3 +130,85 @@ function FK.Pool(create, reset)
 	end
 	return pool
 end
+
+-- Text form of a table of plain values (strings, numbers, booleans, nested tables), for
+-- export/import strings. Deserialize parses that form itself: pasted text is never executed.
+function FK.Serialize(v)
+	local t = type(v)
+	if t == "string" then return ("%q"):format(v):gsub("\\\n", "\\n") end
+	if t == "number" or t == "boolean" then return tostring(v) end
+	if t ~= "table" then error("FK.Serialize: cannot serialize a " .. t, 2) end
+	local keys, parts = {}, {}
+	for k in pairs(v) do keys[#keys + 1] = k end
+	table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+	for _, k in ipairs(keys) do
+		parts[#parts + 1] = "[" .. FK.Serialize(k) .. "]=" .. FK.Serialize(v[k])
+	end
+	return "{" .. table.concat(parts, ",") .. "}"
+end
+
+-- Returns the value, or nil and an error message.
+function FK.Deserialize(text)
+	local pos = 1
+	local value
+	local function skip() pos = text:find("%S", pos) or #text + 1 end
+	local function fail(what) error(("%s at position %d"):format(what, pos), 0) end
+	function value()
+		skip()
+		local c = text:sub(pos, pos)
+		if c == "{" then
+			local t = {}
+			pos = pos + 1
+			while true do
+				skip()
+				if text:sub(pos, pos) == "}" then pos = pos + 1 return t end
+				if text:sub(pos, pos) ~= "[" then fail("expected [") end
+				pos = pos + 1
+				local k = value()
+				skip()
+				if text:sub(pos, pos + 1) ~= "]=" then fail("expected ]=") end
+				pos = pos + 2
+				t[k] = value()
+				skip()
+				if text:sub(pos, pos) == "," then pos = pos + 1 end
+			end
+		elseif c == '"' then
+			local out, i = {}, pos + 1
+			while true do
+				local ch = text:sub(i, i)
+				if ch == "" then fail("unterminated string") end
+				if ch == '"' then break end
+				if ch == "\\" then
+					local n = text:sub(i + 1, i + 1)
+					local digits = text:match("^%d%d?%d?", i + 1)
+					if digits then
+						out[#out + 1] = string.char(tonumber(digits))
+						i = i + #digits
+					else
+						out[#out + 1] = n == "n" and "\n" or n
+						i = i + 1
+					end
+				else
+					out[#out + 1] = ch
+				end
+				i = i + 1
+			end
+			pos = i + 1
+			return table.concat(out)
+		end
+		local word = text:match("^[%w%.%-%+]+", pos)
+		if not word then fail("unexpected character") end
+		pos = pos + #word
+		if word == "true" then return true end
+		if word == "false" then return false end
+		return tonumber(word) or fail("not a value: " .. word)
+	end
+	local ok, result = pcall(function()
+		local v = value()
+		skip()
+		if pos <= #text then fail("trailing text") end
+		return v
+	end)
+	if ok then return result end
+	return nil, result
+end

@@ -168,3 +168,21 @@ function DB:DeleteProfile(name)
 		if profile == name then self.sv.profileKeys[key] = nil end
 	end
 end
+
+-- The active profile as a string a player can paste to someone else.
+function DB:Export()
+	local copy = FK.Copy(self.profile)
+	strip(copy, self.defaults.profile)
+	return FK.Serialize(copy)
+end
+
+-- Replaces the active profile with an exported one. Returns true, or false and a message.
+function DB:Import(text)
+	local data, err = FK.Deserialize(strtrim(text or ""))
+	if type(data) ~= "table" then return false, err or "not a profile string" end
+	wipe(self.profile)
+	fill(self.profile, data)
+	fill(self.profile, self.defaults.profile)
+	self:Notify("profile", self.profile)
+	return true
+end

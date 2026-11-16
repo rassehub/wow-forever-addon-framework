@@ -1,0 +1,7 @@
+## Interface: 11509
+## Title: BadAddon
+## Notes: Deliberately wrong in every way fk lint knows about. Used by tests/lint_test.sh.
+## SavedVariables: BadAddonDB
+
+Libs\ForeverKit\ForeverKit.xml
+Core.lua

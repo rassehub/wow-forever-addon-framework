@@ -21,4 +21,5 @@
 	<Script file="Widgets\Rows.lua"/>
 	<Script file="Widgets\Nav.lua"/>
 	<Script file="Widgets\Display.lua"/>
+	<Script file="Widgets\Options.lua"/>
 </Ui>

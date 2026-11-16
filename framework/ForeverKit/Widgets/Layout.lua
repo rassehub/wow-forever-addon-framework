@@ -192,6 +192,7 @@ function FK.Build(parent, spec, refs)
 	local kind = spec[1]
 	local make = FK[kind]
 	if type(make) ~= "function" then error("FK.Build: unknown widget kind " .. tostring(kind), 2) end
+	if spec.children then spec.refs = refs end
 	local w = make(parent, spec)
 	if spec.id then refs[spec.id] = w end
 	if spec.children and not w.ownsChildren then
