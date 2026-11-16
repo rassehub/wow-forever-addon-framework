@@ -497,7 +497,7 @@ function FontMethods:GetJustifyH() return fontState(self).justifyH or (self[0].t
 function FontMethods:SetJustifyV(j) fontState(self).justifyV = j end
 function FontMethods:GetJustifyV() return fontState(self).justifyV or "MIDDLE" end
 function FontMethods:SetShadowOffset(x, y) fontState(self).shadow = { x, y } end
-function FontMethods:SetShadowColor() end
+function FontMethods:SetShadowColor(r, g, b, a) fontState(self).shadowColor = { r, g, b, a or 1 } end
 function FontMethods:SetSpacing(v) fontState(self).spacing = v; dirty() end
 function FontMethods:GetSpacing() return fontState(self).spacing or 0 end
 function FontMethods:SetTextScale() end

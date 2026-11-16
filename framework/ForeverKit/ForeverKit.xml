@@ -11,6 +11,8 @@
 	<Script file="Themes\Base.lua"/>
 	<Script file="Themes\Pixel.lua"/>
 	<Script file="Themes\Vanilla.lua"/>
+	<Script file="Themes\Glass.lua"/>
+	<Script file="Themes\Parchment.lua"/>
 	<Script file="Widgets\Layout.lua"/>
 	<Script file="Widgets\Basic.lua"/>
 	<Script file="Widgets\Slider.lua"/>

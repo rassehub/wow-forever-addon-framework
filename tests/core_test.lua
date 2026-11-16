@@ -146,6 +146,17 @@ test("themes: extending merges groups but replaces specs", function()
 	ok(vanilla.surface.button.normal.texture and not vanilla.surface.button.normal.border, "a spec replaces the base spec")
 	eq(vanilla.metric.row, base.metric.row, "untouched keys are inherited")
 	eq(vanilla.color.heading, { 1, 0.82, 0 })
-	eq(FK.Theme:Names(), { "pixel", "vanilla" })
+	eq(FK.Theme:Names(), { "glass", "parchment", "pixel", "vanilla" })
 	eq(H.LeakedGlobals("KitTest"), {})
+end)
+
+test("themes: every theme has every colour, font, metric and surface of base", function()
+	local FK = H.Start(KIT).FK
+	local base = FK.Theme.themes.base
+	for _, name in ipairs(FK.Theme:Names()) do
+		local t = FK.Theme.themes[name]
+		for _, group in ipairs({ "color", "font", "metric", "surface", "icon" }) do
+			for k in pairs(base[group]) do ok(t[group][k] ~= nil, name .. "." .. group .. "." .. k) end
+		end
+	end
 end)

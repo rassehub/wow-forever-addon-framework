@@ -10,7 +10,6 @@ local H = require("wow.state")
 local ART = {
 	{ "white8x8", "background:#fff" },
 	{ "ui%-dialogbox%-background", "background:#1b1410" },
-	{ "ui%-tooltip%-background", "background:#0b0d1c" },
 	{ "chatframebackground", "background:#fff" },
 	{ "ui%-dialogbox%-header", "background:linear-gradient(#3a2a1a,#1e150d);border:2px solid #c9a55a;border-radius:6px;clip-path:inset(15% 14% 38% 14% round 6px)" },
 	{ "ui%-panel%-button%-up", "background:linear-gradient(#8e1a12,#5a0d08);border:1px solid #d4b062;border-radius:4px" },
@@ -138,7 +137,9 @@ function H.Render(opts)
 		local f = o[0].font
 		local size = f.size * o:GetEffectiveScale()
 		local css = ("font-size:%.1fpx;line-height:%.1fpx;color:%s;"):format(size, size + (f.spacing or 0), rgba(f.color))
-		css = css .. "text-shadow:1px 1px 1px rgba(0,0,0,.9);" -- the game's fonts carry a drop shadow
+		if not (f.shadowColor and f.shadowColor[4] == 0) then -- the game's fonts carry a drop shadow
+			css = css .. "text-shadow:1px 1px 1px rgba(0,0,0,.9);"
+		end
 		if (f.flags or ""):find("OUTLINE") then css = css .. "text-shadow:-1px 0 #000,1px 0 #000,0 -1px #000,0 1px #000;" end
 		return css
 	end
@@ -208,7 +209,7 @@ function H.Render(opts)
 				local il, ir, it, ib = (ins.left or 0) * es, (ins.right or 0) * es, (ins.top or 0) * es, (ins.bottom or 0) * es
 				local name = tostring(bd.bgFile):lower()
 				local css
-				if name:find("white8x8") or name:find("chatframebackground") then
+				if name:find("white8x8") or name:find("chatframebackground") or name:find("ui%-tooltip%-background") then -- plain tiles: the backdrop colour is the colour
 					css = "background:" .. rgba(bgc, alpha)
 				else
 					-- textured background: the backdrop colour multiplies it (grey = darker)
@@ -234,8 +235,10 @@ function H.Render(opts)
 		if s.type == "EditBox" and (s.text or "") ~= "" then
 			local align = (s.font.justifyH or "LEFT"):lower()
 			local shown = s.password and ("*"):rep(#s.text) or s.text
-			emit(f, x, y, w, h, ("display:flex;align-items:center;justify-content:%s;white-space:nowrap;overflow:hidden;opacity:%.3f;%s")
-				:format(align == "center" and "center" or align == "right" and "flex-end" or "flex-start", alpha, fontCss(f)), esc(shown))
+			local multi = s.multiLine -- top-aligned and wrapping; one-line boxes centre vertically
+			emit(f, x, y, w, h, ("display:flex;align-items:%s;justify-content:%s;white-space:%s;overflow:hidden;opacity:%.3f;%s")
+				:format(multi and "flex-start" or "center", align == "center" and "center" or align == "right" and "flex-end" or "flex-start",
+					multi and "pre-wrap" or "nowrap", alpha, fontCss(f)), esc(shown))
 		end
 		if s.type == "GameTooltip" and #(s.lines or {}) > 0 then
 			local rows = {}

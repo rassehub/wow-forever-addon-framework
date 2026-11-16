@@ -9,7 +9,7 @@ local FK = ns.FK
 --
 -- Token groups (see Themes/Base.lua for every key):
 --   color    named colours { r, g, b [, a] }
---   font     roles -> { "BlizzardFontObject", delta = sizeChange, flags = "OUTLINE", color = "role" }
+--   font     roles -> { "BlizzardFontObject", delta = sizeChange, flags = "OUTLINE", color = "role", shadow = false }
 --   surface  how a part is painted, per state where the part has states
 --   icon     small glyphs: { texture = path, coords = {...} } or { text = "x" }
 --   metric   sizes and spacing in UI units
@@ -29,7 +29,7 @@ local WHITE = "Interface\\Buttons\\WHITE8X8"
 -- A value that replaces rather than merges: a colour/coords/font list, a backdrop, or a
 -- surface/icon spec. Everything else is a group of named things and merges key by key.
 local function isLeaf(v)
-	return v[1] ~= nil or v.bgFile or v.bg or v.texture or v.atlas or v.backdrop or v.text
+	return v[1] ~= nil or v.bgFile or v.bg or v.texture or v.atlas or v.backdrop or type(v.text) == "string" -- icon { text = "x" }; color.text is a colour
 end
 
 local function merge(dst, src)
@@ -97,6 +97,8 @@ function Theme.Font(fontString, role, colorRole)
 		fontString:SetFont(file, size + delta, spec.flags or flags)
 	end
 	fontString:SetTextColor(Theme.Color(colorRole or spec.color or "text"))
+	-- set every time, so switching from a shadowless theme restores it; dark ink on light paper needs none
+	fontString:SetShadowColor(0, 0, 0, spec.shadow == false and 0 or 1)
 end
 
 -- Paints `frame` (created with BackdropTemplate) according to a surface spec; nil clears it.

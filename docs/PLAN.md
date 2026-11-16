@@ -16,7 +16,7 @@ notes, commit.** Research that the decisions rest on is in [`research/`](researc
 - [x] **Step 4** — Widgets I (controls): window, panel, text, button, checkbox, toggle, slider family, edit boxes, dropdowns, colour, keybind, progress
 - [x] **Step 5** — Widgets II (collections): scroll list, table, tree, composite rows (toggle+slider, toggle+list…), reorder list, checklist, tabs, dialogs, menu, toast, bars, icon grid, money
 - [x] **Step 6** — Options DSL: declarative settings → generated panel, Settings-panel registration, profiles; UI lint rules
-- [ ] **Step 7** — Themes (`vanilla`, `pixel`, `glass`, `parchment`), HTML preview renderer, `FKGallery` showcase addon
+- [x] **Step 7** — Themes (`vanilla`, `pixel`, `glass`, `parchment`), HTML preview renderer, `FKGallery` showcase addon
 - [ ] **Step 8** — Feature modules ("hooks"): tooltips, items, bags, minimap button + compartment, comms, combat queue, secrets helpers, movers, map pins, chat
 - [ ] **Step 9** — Game data: QuestieDB + Auctionator runtime bridges, offline `fk data` tools
 - [ ] **Step 10** — Live testing: `fk link`, `FKDev` in-game addon, `fk live`, verified against the real client
@@ -279,3 +279,22 @@ columns, selection), `Tree` (collapsible, lazy), composite rows — `ToggleRow`,
   `tests/lint_test.sh` checks that (run by `fk test`).
 - Not done: search across options; the secret-value lint is a regex over four unit functions,
   not data-flow analysis.
+
+### Step 7 (2026-11-16)
+- Themes: `glass` (translucent flat colours, no texture files) and `parchment` (paper colour,
+  tooltip-border edges, tan buttons, red accents, shadowless dark ink) join `pixel` and `vanilla`.
+  Font roles accept `shadow = false`; `Theme.Font` sets the shadow every time so switching back
+  restores it.
+- Bug fixed: the theme merge treated any group with a `text` key as a leaf, so overriding
+  `color.text` dropped every other base colour (vanilla had lost `warn` and `link`). New test:
+  every theme carries every base colour/font/metric/surface/icon key.
+- Renderer: `UI-Tooltip-Background` is drawn as a tinted flat tile (as in game); multi-line
+  edit boxes render top-aligned and wrapping; text shadow follows `SetShadowColor`.
+- `examples/FKGallery`: one window, side tabs Controls / Choices / Settings rows / Collections /
+  Display, theme dropdown (saved; follows `fk.theme`), `/fkgallery`. Exposes `ns.gallery` for
+  previews: `fk preview FKGallery --theme pixel,vanilla,glass,parchment --name rows --do
+  "ns.gallery.tabs:Select('rows')"`. All 20 page×theme screenshots were rendered and looked at.
+  Its test checks every page in every theme for layout issues.
+- Known, left: `FK.Money` coin colours (gold/silver/copper) are faint on parchment; pixel
+  BarList labels are white on a light-blue fill (low contrast). Glass/parchment colours are
+  untested in game (step 10).
