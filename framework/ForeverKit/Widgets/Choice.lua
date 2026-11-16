@@ -384,13 +384,13 @@ FK.Define("RadioGroup", {
 	GetValue = function(self) return self.value end,
 	Restyle = function(self)
 		local T = Theme.current
-		local size, rowH = T.metric.check, T.metric.row
+		local size, rowH = T.metric.radio, T.metric.row
 		for i, radio in ipairs(self.radios) do
 			radio:ClearAllPoints()
 			radio:SetPoint("TOPLEFT", 0, -self.top - (i - 1) * rowH)
 			radio:SetSize(size + 6 + radio.text:GetStringWidth(), rowH)
 			radio.box:SetSize(size, size)
-			Theme.PaintState(radio.box, T.surface.check, not self.enabled and "disabled" or radio.hover and "hover" or "normal")
+			Theme.PaintState(radio.box, T.surface.radio, not self.enabled and "disabled" or radio.hover and "hover" or "normal")
 			local mark = T.surface.radioMark
 			local inset = mark.inset or 0
 			radio.mark:ClearAllPoints()

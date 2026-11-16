@@ -50,6 +50,12 @@ FK.Theme.Register("base", {
 			disabled = { bg = { 0.1, 0.1, 0.1, 1 }, border = BLACK },
 			highlight = false,
 		},
+		radio = {
+			normal = { bg = { 0.04, 0.04, 0.05, 1 }, border = BLACK },
+			hover = { bg = { 0.04, 0.04, 0.05, 1 }, border = ACCENT },
+			disabled = { bg = { 0.1, 0.1, 0.1, 1 }, border = BLACK },
+			highlight = false,
+		},
 		checkMark = { bg = ACCENT, inset = 3 },
 		radioMark = { bg = ACCENT, inset = 4 },
 		toggle = {
@@ -100,6 +106,7 @@ FK.Theme.Register("base", {
 		title = 26,      -- title bar height
 		icon = 14,
 		check = 16,
+		radio = 16,
 		toggleWidth = 30,
 		slider = 6,      -- track thickness
 		thumbWidth = 10, thumbHeight = 16,

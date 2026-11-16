@@ -7,6 +7,7 @@ require("wow.sim")
 require("wow.api")
 require("wow.loader")
 require("wow.tree")
+require("wow.render")
 
 local G = _G
 local baseline = {}

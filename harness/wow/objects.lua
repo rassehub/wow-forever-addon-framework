@@ -493,7 +493,7 @@ function FontMethods:GetFontObject() return fontState(self).object end
 function FontMethods:SetTextColor(r, g, b, a) fontState(self).color = { r, g, b, a or 1 } end
 function FontMethods:GetTextColor() return unpack(fontState(self).color) end
 function FontMethods:SetJustifyH(j) fontState(self).justifyH = j end
-function FontMethods:GetJustifyH() return fontState(self).justifyH or "CENTER" end
+function FontMethods:GetJustifyH() return fontState(self).justifyH or (self[0].type == "EditBox" and "LEFT" or "CENTER") end
 function FontMethods:SetJustifyV(j) fontState(self).justifyV = j end
 function FontMethods:GetJustifyV() return fontState(self).justifyV or "MIDDLE" end
 function FontMethods:SetShadowOffset(x, y) fontState(self).shadow = { x, y } end
@@ -571,6 +571,32 @@ local function fsLines(o, boxWidth)
 	local lines = wrap(text, s.font.size, (s.wordWrap ~= false) and boxWidth or nil)
 	if s.maxLines and s.maxLines > 0 then
 		while #lines > s.maxLines do table.remove(lines) end
+	end
+	return lines
+end
+
+-- The text as the emulator laid it out: raw text (colour codes kept) with its line breaks.
+function H.TextLines(o)
+	local s = o[0]
+	local raw = tostring(s.text or ""):gsub("|n", "\n")
+	local boxWidth = (s.wordWrap ~= false) and o:GetWidth() > 0 and o:GetWidth() or nil
+	local lines = {}
+	for para in (raw .. "\n"):gmatch("(.-)\n") do
+		if not boxWidth or textWidth(plain(para), s.font.size) <= boxWidth then
+			lines[#lines + 1] = para
+		else
+			local line = ""
+			for word in para:gmatch("%S+") do
+				local try = line == "" and word or (line .. " " .. word)
+				if line ~= "" and textWidth(plain(try), s.font.size) > boxWidth then
+					lines[#lines + 1] = line
+					line = word
+				else
+					line = try
+				end
+			end
+			lines[#lines + 1] = line
+		end
 	end
 	return lines
 end

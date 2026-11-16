@@ -85,7 +85,11 @@ end
 function Theme.Font(fontString, role, colorRole)
 	local T = Theme.current
 	local spec = T.font[role] or error("FK.Theme: no font role " .. tostring(role), 2)
+	-- a font object brings its own justification along: keep the one the widget chose
+	local h, v = fontString:GetJustifyH(), fontString.GetJustifyV and fontString:GetJustifyV()
 	fontString:SetFontObject(spec[1])
+	fontString:SetJustifyH(h)
+	if v then fontString:SetJustifyV(v) end
 	local delta = (spec.delta or 0) + Theme.fontDelta
 	if delta ~= 0 or spec.flags then
 		-- the file comes from the locale's own font object, so CJK and Cyrillic keep working

@@ -63,7 +63,14 @@ FK.Theme.Register("vanilla", {
 			highlight = { texture = "Interface\\Buttons\\UI-CheckBox-Highlight", blend = "ADD" },
 		},
 		checkMark = { texture = "Interface\\Buttons\\UI-CheckBox-Check", inset = 0 },
-		radioMark = { texture = "Interface\\Buttons\\UI-RadioButton", coords = { 0.25, 0.5, 0, 1 }, inset = 2 },
+		-- UI-RadioButton is a strip: empty ring, filled ring, highlight
+		radio = {
+			normal = { texture = "Interface\\Buttons\\UI-RadioButton", coords = { 0, 0.25, 0, 1 } },
+			hover = { texture = "Interface\\Buttons\\UI-RadioButton", coords = { 0, 0.25, 0, 1 } },
+			disabled = { texture = "Interface\\Buttons\\UI-RadioButton", coords = { 0, 0.25, 0, 1 }, color = { 0.5, 0.5, 0.5, 1 } },
+			highlight = { texture = "Interface\\Buttons\\UI-RadioButton", coords = { 0.5, 0.75, 0, 1 }, blend = "ADD" },
+		},
+		radioMark = { texture = "Interface\\Buttons\\UI-RadioButton", coords = { 0.25, 0.5, 0, 1 }, inset = 0 },
 		toggle = {
 			off = { backdrop = THIN, bg = { 0, 0, 0, 0.7 }, border = GREY },
 			on = { backdrop = THIN, bg = { 0.45, 0.33, 0, 0.9 }, border = GOLD },
@@ -99,7 +106,7 @@ FK.Theme.Register("vanilla", {
 		minus = { texture = "Interface\\Buttons\\UI-MinusButton-Up", size = 16 },
 	},
 	metric = {
-		pad = 12, gap = 8, control = 22, title = 30, check = 24,
+		pad = 12, gap = 8, control = 22, title = 30, check = 24, radio = 16,
 		slider = 17, thumbWidth = 32, thumbHeight = 32, scroll = 14,
 		windowInset = { 11, 12, 12, 11 },
 	},

@@ -6,8 +6,10 @@ Run `tools/fk <command> -h` for details of a command.
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -101,6 +103,62 @@ def cmd_test(args):
     sys.exit(1 if failed else 0)
 
 
+def addon_dir(arg):
+    """An addon folder: a path, or a name looked up in examples/ and addons/."""
+    for candidate in (Path(arg), ROOT / "examples" / arg, ROOT / "addons" / arg):
+        if candidate.is_dir():
+            return candidate.resolve()
+    die(f"addon folder not found: {arg}")
+
+
+def harness_args(args):
+    out = []
+    for snippet in args.do or []:
+        out += ["--do", snippet]
+    if args.theme:
+        out += ["--theme", args.theme]
+    wow = wow_dir(required=False)
+    if wow:
+        out += ["--addons-path", wow / "Interface" / "AddOns"]
+    return out
+
+
+def cmd_tree(args):
+    extra = ["--textures"] if args.textures else []
+    result = lua(HARNESS / "cli.lua", "tree", addon_dir(args.addon), *harness_args(args), *extra, check=False)
+    sys.exit(result.returncode)
+
+
+def screenshot(html, png, width, height):
+    """PNG of an HTML file with headless Firefox (own throwaway profile, so a running Firefox is not disturbed)."""
+    firefox = shutil.which("firefox")
+    if not firefox:
+        die("firefox not found: open the HTML file in a browser instead")
+    with tempfile.TemporaryDirectory() as profile:
+        subprocess.run([firefox, "--headless", "--no-remote", "--profile", profile,
+                        f"--window-size={width},{height}", "--screenshot", str(png), html.as_uri()],
+                       check=True, capture_output=True, timeout=120)
+
+
+def cmd_preview(args):
+    addon = addon_dir(args.addon)
+    out_dir = ROOT / ".preview"
+    out_dir.mkdir(exist_ok=True)
+    themes = args.theme.split(",") if args.theme else [None]
+    for theme in themes:
+        stem = addon.name + (f"-{theme}" if theme else "") + (f"-{args.name}" if args.name else "")
+        html = out_dir / f"{stem}.html"
+        args.theme = theme
+        lua(HARNESS / "cli.lua", "html", addon, *harness_args(args), "--out", html, *(["--full"] if args.full else []))
+        print(html)
+        if not args.no_png:
+            import re
+            m = re.search(r"#screen\{position:relative;width:(\d+)px;height:(\d+)px", html.read_text())
+            png = html.with_suffix(".png")
+            screenshot(html, png, int(m.group(1)), int(m.group(2)))
+            print(png)
+
+
 def main():
     parser = argparse.ArgumentParser(prog="fk", description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -113,6 +171,24 @@ def main():
     p.add_argument("paths", nargs="*", help="test files or directories")
     p.add_argument("-v", "--verbose", action="store_true", help="list passing tests and chat output")
     p.set_defaults(func=cmd_test)
+
+    def ui_args(p):
+        p.add_argument("addon", help="addon folder, or the name of one in examples/ or addons/")
+        p.add_argument("--do", action="append", metavar="LUA",
+                       help="Lua to run after login, e.g. --do 'H.Slash(\"/myaddon\")' (sees H, ns, FK; repeatable)")
+        p.add_argument("--theme", help="ForeverKit theme to apply (preview: comma-separated list for one image each)")
+
+    p = sub.add_parser("tree", help="print the visible frame tree of an addon and its layout issues")
+    ui_args(p)
+    p.add_argument("--textures", action="store_true", help="also list textures")
+    p.set_defaults(func=cmd_tree)
+
+    p = sub.add_parser("preview", help="render an addon's UI to .preview/<name>.html and .png")
+    ui_args(p)
+    p.add_argument("--full", action="store_true", help="whole screen instead of the largest window")
+    p.add_argument("--name", help="suffix for the output file name")
+    p.add_argument("--no-png", action="store_true", help="HTML only")
+    p.set_defaults(func=cmd_preview)
 
     args = parser.parse_args()
     args.func(args)
