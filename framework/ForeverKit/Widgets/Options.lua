@@ -21,7 +21,7 @@ local L = FK.L
 --       appearance = "profile.ui",   -- adds an Appearance page bound to FK:BindAppearance
 --       profiles = true,             -- adds a Profiles page
 --   })
---   ns.options:Open()
+--   ns.options:Open()          -- or :Open("general") to show a given page
 --
 -- Option types: header, text, toggle, slider, stepper, select, multiselect, segmented, color,
 -- keybind, input, money, checklist, reorder, button, group.
@@ -295,12 +295,14 @@ function Options:BuildInto(frame)
 	return FK.Tabs(frame, { points = { { "TOPLEFT" }, { "BOTTOMRIGHT" } }, side = #pages > 4, tabs = tabs })
 end
 
-function Options:Open()
+-- page: optional page id to show (e.g. "keys"); default the last shown page.
+function Options:Open(page)
 	if not self.window then
 		self.window = FK.Window(UIParent, { name = ADDON .. "FKOptions", title = self.def.title or (FK.title .. " - " .. L["Settings"]),
 			width = self.def.width or 560, height = self.def.height or 480, resizable = { minWidth = 420, minHeight = 300 }, strata = "HIGH" })
-		self:BuildInto(self.window.content)
+		self.tabs = self:BuildInto(self.window.content)
 	end
+	if page and self.tabs then self.tabs:Select(page) end
 	self:Refresh()
 	self.window:Open()
 	self.window:Raise()

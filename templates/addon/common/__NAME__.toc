@@ -1,0 +1,11 @@
+## Interface: 16001
+## Title: __NAME__
+## Notes: __NOTES__
+## Version: 0.1.0
+## SavedVariables: __NAME__DB
+## IconTexture: Interface\Icons\INV_Misc_Note_01
+## AddonCompartmentFunc: __NAME___OnCompartmentClick
+## OptionalDeps: __DEPS__
+
+Libs\ForeverKit\ForeverKit.xml
+Main.lua

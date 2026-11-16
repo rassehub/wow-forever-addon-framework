@@ -1,0 +1,26 @@
+-- Emulator tests: tools/fk test addons/__NAME__ (ADDON is this addon's folder).
+
+test("window opens from the slash command, notes are saved", function()
+	local ns = H.Start(ADDON)
+	ok(not ns.window:IsShown())
+	H.Slash("/__SLUG__")
+	ok(ns.window:IsShown())
+	H.Enter(ns.refs.note.box, "remember the milk")
+	ns.refs.note.box:ClearFocus() -- leaving the field commits it
+	H.Key("ESCAPE")
+	ok(not ns.window:IsShown(), "Escape closes the window")
+	eq(ns.db.profile.note, "remember the milk")
+	eq(H.LayoutIssues(ns.window), {})
+	ns = H.Reload()
+	eq(ns.db.profile.note, "remember the milk")
+end)
+
+test("settings open and the minimap button can be hidden", function()
+	local ns = H.Start(ADDON)
+	H.Slash("/__SLUG__ config")
+	ok(ns.options.window:IsShown())
+	ns.db:Set("profile.minimap.hide", true)
+	ns.minimap:SetHidden(true)
+	ok(not ns.minimap:IsShown())
+	eq(H.LeakedGlobals("__NAME__"), {})
+end)

@@ -83,7 +83,8 @@ def test_files(paths):
         for p in map(Path, paths):
             found += sorted(p.rglob("*.lua")) if p.is_dir() else [p]
         return found
-    return sorted(ROOT.glob("tests/*.lua")) + sorted(ROOT.glob("examples/*/tests/*.lua"))
+    return (sorted(ROOT.glob("tests/*.lua")) + sorted(ROOT.glob("examples/*/tests/*.lua"))
+            + sorted(ROOT.glob("addons/*/tests/*.lua")))
 
 
 def cmd_test(args):
@@ -187,6 +188,8 @@ def lint_static(addon):
 
     sources = sorted(p for p in addon.rglob("*.lua") if "Libs" not in p.relative_to(addon).parts and "tests" not in p.relative_to(addon).parts)
     listed_lower = {x.lower() for x in listed}
+    # globals the client calls by name from the TOC (addon compartment) are meant to be global
+    toc_globals = {v for k, v in meta.items() if k.startswith("AddonCompartmentFunc")}
     for path in sources:
         rel = path.relative_to(addon).as_posix()
         if rel.lower() not in listed_lower and not any(x.lower().endswith(".xml") for x in listed):
@@ -205,6 +208,8 @@ def lint_static(addon):
             code = re.sub(r"--.*$", "", line)
             for rule, level, pattern, message in LINT_RULES:
                 m = re.search(pattern, code)
+                if m and rule == "global-function" and re.match(r"^function\s+(\w+)", code).group(1) in toc_globals:
+                    continue
                 if m:
                     yield path, n, level, rule, message.format(*[g or "" for g in m.groups()])
 
@@ -387,6 +392,100 @@ def cmd_live(args):
         sys.exit(1)
 
 
+FRAMEWORK = ROOT / "framework" / "ForeverKit"
+TEMPLATES = ROOT / "templates" / "addon"
+KINDS = {
+    "window": "A window with notes, settings and a minimap button.",
+    "tracker": "Tracks items in your bags against goals.",
+    "options-only": "Warns when your bags are nearly full.",
+    "data": "Looks up where an item comes from in QuestieDB.",
+}
+
+
+def link_library(addon, copy=False):
+    """Libs/ForeverKit: a symlink to the framework while developing inside this repo, a copy otherwise."""
+    lib = addon / "Libs" / "ForeverKit"
+    lib.parent.mkdir(exist_ok=True)
+    if lib.is_symlink():
+        lib.unlink()
+    elif lib.exists():
+        shutil.rmtree(lib)
+    inside = ROOT.resolve() in addon.resolve().parents
+    if copy or not inside:
+        shutil.copytree(FRAMEWORK, lib)
+        return "copy"
+    lib.symlink_to(os.path.relpath(FRAMEWORK, lib.parent), target_is_directory=True)
+    return "link"
+
+
+def cmd_new(args):
+    """Create an addon from templates/addon: common files plus the chosen kind."""
+    name = args.name
+    if not re.fullmatch(r"[A-Z][A-Za-z0-9]{1,40}", name):
+        die("addon names are CamelCase letters and digits, starting with a capital: MyAddon")
+    dest = (Path(args.dir) if args.dir else ROOT / "addons") / name
+    if dest.exists():
+        die(f"{dest} already exists")
+    words = {
+        "__NAME__": name, "__SLUG__": name.lower(), "__NOTES__": args.notes or KINDS[args.kind],
+        "__DEPS__": "QuestieDB, FKDev" if args.kind == "data" else "FKDev",
+    }
+    def fill(text):
+        for k, v in words.items():
+            text = text.replace(k, v)
+        return text
+    for src_root in (TEMPLATES / "common", TEMPLATES / args.kind):
+        for src in sorted(src_root.rglob("*")):
+            if src.is_file():
+                out = dest / fill(str(src.relative_to(src_root)))
+                out.parent.mkdir(parents=True, exist_ok=True)
+                out.write_text(fill(src.read_text()))
+    how = link_library(dest)
+    print(f"created {dest} ({args.kind}; ForeverKit as a {how})")
+    print(f"next: tools/fk test {dest}/tests   tools/fk preview {name} --do \"H.Slash('/{name.lower()}')\"   tools/fk link {name}")
+
+
+def cmd_sync(args):
+    """Refresh an addon's embedded ForeverKit (a copy with --copy, otherwise a link when inside this repo)."""
+    addon = addon_dir(args.addon)
+    if wow_dir(required=False) and wow_dir(required=False).resolve() in addon.parents:
+        die("refusing to modify a folder inside the game directory; sync the working copy instead")
+    print(f"{addon.name}: ForeverKit {link_library(addon, copy=args.copy)} refreshed")
+
+
+def toc_of(addon):
+    for suffix in ("_Forever", ""):
+        toc = addon / f"{addon.name}{suffix}.toc"
+        if toc.exists():
+            return toc
+    die(f"no TOC in {addon}")
+
+
+def cmd_build(args):
+    """Zip an addon for release into build/, with ForeverKit embedded (links followed), tests left out."""
+    addon = addon_dir(args.addon)
+    if not args.no_lint:
+        result = subprocess.run([sys.executable, str(Path(__file__)), "lint", str(addon)])
+        if result.returncode:
+            die("lint found errors; fix them or pass --no-lint")
+    m = re.search(r"^##\s*Version:\s*(\S+)", toc_of(addon).read_text(), re.M)
+    version = m.group(1) if m else "0"
+    out = ROOT / "build" / f"{addon.name}-{version}.zip"
+    out.parent.mkdir(exist_ok=True)
+    import zipfile
+    count = 0
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+        for dirpath, dirnames, filenames in os.walk(addon, followlinks=True):
+            rel = Path(dirpath).relative_to(addon)
+            dirnames[:] = sorted(d for d in dirnames if not d.startswith(".") and not (rel == Path(".") and d == "tests"))
+            for f in sorted(filenames):
+                if f.startswith("."):
+                    continue
+                z.write(Path(dirpath) / f, Path(addon.name) / rel / f)
+                count += 1
+    print(f"{out} ({count} files)")
+
+
 def main():
     parser = argparse.ArgumentParser(prog="fk", description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -423,6 +522,23 @@ def main():
     p.add_argument("--raw", action="store_true", help="plain ids in drop/vendor/quest lists, without names")
     p.add_argument("--questiedb", help="QuestieDB folder (default: the one in the configured WoW install)")
     p.set_defaults(func=cmd_data)
+
+    p = sub.add_parser("new", help="create an addon from a template: fk new MyAddon --kind window|tracker|options-only|data")
+    p.add_argument("name")
+    p.add_argument("--kind", choices=list(KINDS), default="window")
+    p.add_argument("--dir", help="parent folder (default: addons/ in this repo)")
+    p.add_argument("--notes", help="the TOC's ## Notes line")
+    p.set_defaults(func=cmd_new)
+
+    p = sub.add_parser("sync", help="refresh an addon's embedded ForeverKit")
+    p.add_argument("addon")
+    p.add_argument("--copy", action="store_true", help="a real copy instead of a symlink")
+    p.set_defaults(func=cmd_sync)
+
+    p = sub.add_parser("build", help="zip an addon for release into build/ (lint first)")
+    p.add_argument("addon")
+    p.add_argument("--no-lint", action="store_true")
+    p.set_defaults(func=cmd_build)
 
     p = sub.add_parser("link", help="symlink addons (examples/, addons/, or FKDev) into the game's AddOns folder")
     p.add_argument("addons", nargs="+")

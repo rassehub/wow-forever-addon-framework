@@ -1,0 +1,11 @@
+## Interface: 16001
+## Title: BagWarden
+## Notes: Bag space warnings, configurable down to the colour and the channel.
+## Version: 0.1.0
+## SavedVariables: BagWardenDB
+## IconTexture: Interface\Icons\INV_Misc_Note_01
+## AddonCompartmentFunc: BagWarden_OnCompartmentClick
+## OptionalDeps: FKDev
+
+Libs\ForeverKit\ForeverKit.xml
+Main.lua

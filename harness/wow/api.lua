@@ -629,6 +629,7 @@ function H.Install()
 	G.C_Map = namespace("C_Map", {
 		GetBestMapForUnit = function() return fx.mapID or 1453 end,
 		GetMapInfo = function(id) return { mapID = id, name = fx.maps and fx.maps[id] or ("Map " .. id), mapType = 3, parentMapID = 0 } end,
+		GetAreaInfo = function(areaID) return fx.areas and fx.areas[areaID] or ("Area " .. areaID) end,
 		SetUserWaypoint = function(point) H.waypoint = point end,
 		GetUserWaypoint = function() return H.waypoint end,
 		GetPlayerMapPosition = function()

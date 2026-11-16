@@ -92,7 +92,8 @@ function H.LayoutIssues(root)
 		if not f[0].shown then return end
 		local fx, fy, fw, fh = box(f)
 		if f[0].parent == UIParent then wx, wy, ww, wh = fx, fy, fw, fh end
-		if fx and wx and f[0].parent ~= UIParent and fw > 0 and fh > 0 and not clipped(f)
+		-- minimap buttons sit on the minimap's edge on purpose
+		if fx and wx and f[0].parent ~= UIParent and f[0].parent ~= rawget(_G, "Minimap") and fw > 0 and fh > 0 and not clipped(f)
 			and (fx < wx - 2 or fy < wy - 2 or fx + fw > wx + ww + 2 or fy + fh > wy + wh + 2) then
 			add(f, "outside its window")
 		end

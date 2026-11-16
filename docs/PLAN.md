@@ -20,7 +20,7 @@ notes, commit.** Research that the decisions rest on is in [`research/`](researc
 - [x] **Step 8** — Feature modules ("hooks"): tooltips, items, bags, minimap button + compartment, comms, combat queue, secrets helpers, movers, map pins, chat
 - [x] **Step 9** — Game data: QuestieDB + Auctionator runtime bridges, offline `fk data` tools
 - [x] **Step 10** — Live testing: `fk link`, `FKDev` in-game addon, `fk live`, verified against the real client
-- [ ] **Step 11** — Scaffold (`fk new`), `fk build`, three example addons of different kinds
+- [x] **Step 11** — Scaffold (`fk new`), `fk build`, three example addons of different kinds
 - [ ] **Step 12** — Claude skills (with skill-creator), generated component catalog, UI/UX + feature guidelines
 - [ ] **Step 13** — Human operation guide, README, full QA pass, in-game checklist
 
@@ -369,3 +369,28 @@ columns, selection), `Tree` (collapsible, lazy), composite rows — `ToggleRow`,
   `FK.inWorld`. The emulator's login performs the same close-all.
 - Not verified yet: the glass/parchment look by eye, map pins on the real map, comm between two
   clients, keybind press, Movers drag. Each needs an example addon or a human; step 11/13.
+
+### Step 11 (2026-11-16)
+- `fk new <Name> [--kind window|tracker|options-only|data] [--dir D] [--notes T]` fills
+  `templates/addon/common` + `templates/addon/<kind>` (`__NAME__`, `__SLUG__`, `__NOTES__`,
+  `__DEPS__` in names and contents). Default destination `addons/` (gitignored: the user's own
+  addons get their own repos). `Libs/ForeverKit` is a relative symlink inside this repo, a copy
+  elsewhere; `fk sync <addon> [--copy]` refreshes it. Every kind: SavedVariables, appearance
+  binding, `FK:Options` with Appearance + Profiles pages, slash command, addon compartment
+  (`## AddonCompartmentFunc`), FKDev as optional dependency, emulator tests that pass as
+  generated (all four kinds were generated, tested and linted clean).
+- `fk build <addon> [--no-lint]` lints, then zips to `build/<Name>-<Version>.zip` with links
+  followed (ForeverKit embedded) and `tests/` and dotfiles left out.
+- Test runner: `ADDON` = the folder of the addon a `<addon>/tests/*.lua` file belongs to;
+  `fk test` also discovers `addons/*/tests`.
+- Examples (each with tests, lint clean, builds): `GoalCounter` (tracker kind as generated),
+  `ItemSources` (QuestieDB: tree of drop/container/vendor sources + table of spawn points with
+  zone names from `C_Map.GetAreaInfo`), `BagWarden` (settings-heavy: 4 pages using slider with
+  switch, formatted slider, select with switch, input, colour, segmented, button, checklist,
+  keybind; layout-checked on every page in every theme).
+- Framework/tooling changes found while doing this: `options:Open(pageId)`; lint no longer flags
+  globals named by `## AddonCompartmentFunc*`, nor minimap-edge buttons as outside their window;
+  emulator clicks the visible part of a clipped frame; `C_Map.GetAreaInfo` emulated (unverified
+  in game — check with FKDev when ItemSources is linked).
+- Known: Tracker shortens long item names (emulator reports "text truncated"); the HTML preview
+  clips instead of drawing the ellipsis.

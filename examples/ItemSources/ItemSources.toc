@@ -1,0 +1,11 @@
+## Interface: 16001
+## Title: ItemSources
+## Notes: Where does an item come from? Drops, containers and vendors from QuestieDB, with spawn points.
+## Version: 0.1.0
+## SavedVariables: ItemSourcesDB
+## IconTexture: Interface\Icons\INV_Misc_Note_01
+## AddonCompartmentFunc: ItemSources_OnCompartmentClick
+## OptionalDeps: QuestieDB, FKDev
+
+Libs\ForeverKit\ForeverKit.xml
+Main.lua

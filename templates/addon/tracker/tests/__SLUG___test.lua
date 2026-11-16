@@ -1,0 +1,23 @@
+-- Emulator tests: tools/fk test addons/__NAME__ (ADDON is this addon's folder).
+
+test("a goal follows the bags and survives a reload", function()
+	local ns = H.Start(ADDON)
+	H.Slash("/__SLUG__ add 2589 30")
+	eq(ns.Lines()[1].text, "Linen Cloth")
+	eq(ns.Lines()[1].value, "20/30")
+	H.SetBag(0, 3, 2589, 10)
+	H.Advance(1)
+	eq(ns.Lines()[1].value, "30/30")
+	eq(H.LayoutIssues(ns.tracker), {})
+	ns = H.Reload()
+	eq(ns.Lines()[1].value, "30/30")
+end)
+
+test("finished goals can be hidden; bad input is refused", function()
+	local ns = H.Start(ADDON)
+	ok(ns.AddGoal(2589, 5))
+	ok(not ns.AddGoal("nonsense", 5))
+	ns.db:Set("profile.hideDone", true)
+	eq(#ns.Lines(), 0)
+	eq(H.LeakedGlobals("__NAME__"), {})
+end)

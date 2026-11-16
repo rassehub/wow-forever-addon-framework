@@ -1,5 +1,6 @@
 -- Test runner: lua harness/run.lua [--verbose] [--addons-path DIR]... TESTFILE
--- A test file sees the emulator as `H` plus: test(name, fn), eq, near, ok, raises.
+-- A test file sees the emulator as `H` plus: test(name, fn), eq, near, ok, raises, ROOT (repo)
+-- and ADDON (the addon folder when the file is <addon>/tests/*.lua).
 -- The client is reset before every test, so each test starts with H.Start(...) or bare frames.
 
 local traceback, exit, getenv, print = debug.traceback, os.exit, os.getenv, print
@@ -59,6 +60,7 @@ env.test = function(name, fn) tests[#tests + 1] = { name = name, fn = fn } end
 local failed, passed = 0, 0
 for _, file in ipairs(files) do
 	tests = {}
+	env.ADDON = file:match("^(.*)/tests/[^/]+%.lua$") -- the addon this test file belongs to
 	local chunk, err = loadstring(H.ReadFile(file) or error("cannot read " .. file, 0), "@" .. file)
 	if not chunk then
 		print("FAIL " .. file .. "\n  " .. err)

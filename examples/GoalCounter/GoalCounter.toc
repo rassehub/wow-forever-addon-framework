@@ -1,0 +1,11 @@
+## Interface: 16001
+## Title: GoalCounter
+## Notes: Counts items in your bags against goals: /goalcounter add <item> <count>.
+## Version: 0.1.0
+## SavedVariables: GoalCounterDB
+## IconTexture: Interface\Icons\INV_Misc_Note_01
+## AddonCompartmentFunc: GoalCounter_OnCompartmentClick
+## OptionalDeps: FKDev
+
+Libs\ForeverKit\ForeverKit.xml
+Main.lua

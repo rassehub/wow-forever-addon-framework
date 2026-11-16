@@ -40,10 +40,23 @@ function H.HitTest(x, y, wants)
 	return best
 end
 
+-- The centre of the part of f that can be seen: a scrolled child taller than its scroll frame is
+-- clicked where the player would click it, not at its (clipped away) middle.
 local function center(f)
 	local l, b, w, h = H.resolve(f)
 	if not l then error(H.debugname(f) .. " has no position (not anchored, or anchored to something unanchored)", 3) end
-	return l + w / 2, b + h / 2
+	local r, t = l + w, b + h
+	local p = f[0].parent
+	while p do
+		if p[0].clips or p:IsObjectType("ScrollFrame") then
+			local pl, pb, pw, ph = H.resolve(p)
+			if pl then
+				l, b, r, t = math.max(l, pl), math.max(b, pb), math.min(r, pl + pw), math.min(t, pb + ph)
+			end
+		end
+		p = p[0].parent
+	end
+	return (l + r) / 2, (b + t) / 2
 end
 
 local function moveMouse(x, y)
