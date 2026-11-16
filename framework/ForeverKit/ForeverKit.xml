@@ -17,4 +17,8 @@
 	<Script file="Widgets\Input.lua"/>
 	<Script file="Widgets\Choice.lua"/>
 	<Script file="Widgets\Window.lua"/>
+	<Script file="Widgets\Scroll.lua"/>
+	<Script file="Widgets\Rows.lua"/>
+	<Script file="Widgets\Nav.lua"/>
+	<Script file="Widgets\Display.lua"/>
 </Ui>

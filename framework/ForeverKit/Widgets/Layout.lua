@@ -194,7 +194,7 @@ function FK.Build(parent, spec, refs)
 	if type(make) ~= "function" then error("FK.Build: unknown widget kind " .. tostring(kind), 2) end
 	local w = make(parent, spec)
 	if spec.id then refs[spec.id] = w end
-	if spec.children then
+	if spec.children and not w.ownsChildren then
 		if not w.Add then error("FK.Build: " .. kind .. " cannot hold children", 2) end
 		local function addAll()
 			for _, child in ipairs(spec.children) do w:Add(FK.Build(w.content or w, child, refs)) end

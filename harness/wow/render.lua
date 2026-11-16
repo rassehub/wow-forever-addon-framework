@@ -138,6 +138,7 @@ function H.Render(opts)
 		local f = o[0].font
 		local size = f.size * o:GetEffectiveScale()
 		local css = ("font-size:%.1fpx;line-height:%.1fpx;color:%s;"):format(size, size + (f.spacing or 0), rgba(f.color))
+		css = css .. "text-shadow:1px 1px 1px rgba(0,0,0,.9);" -- the game's fonts carry a drop shadow
 		if (f.flags or ""):find("OUTLINE") then css = css .. "text-shadow:-1px 0 #000,1px 0 #000,0 -1px #000,0 1px #000;" end
 		return css
 	end

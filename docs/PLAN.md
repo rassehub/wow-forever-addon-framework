@@ -14,7 +14,7 @@ notes, commit.** Research that the decisions rest on is in [`research/`](researc
 - [x] **Step 2** — Emulator (`harness/`): frames, layout, TOC loader, events, clock, input, tree dump, test runner
 - [x] **Step 3** — ForeverKit core: namespace, events, DB, slash, timers, locale, theme engine
 - [x] **Step 4** — Widgets I (controls): window, panel, text, button, checkbox, toggle, slider family, edit boxes, dropdowns, colour, keybind, progress
-- [ ] **Step 5** — Widgets II (collections): scroll list, table, tree, composite rows (toggle+slider, toggle+list…), reorder list, checklist, tabs, dialogs, menu, toast, bars, icon grid, money
+- [x] **Step 5** — Widgets II (collections): scroll list, table, tree, composite rows (toggle+slider, toggle+list…), reorder list, checklist, tabs, dialogs, menu, toast, bars, icon grid, money
 - [ ] **Step 6** — Options DSL: declarative settings → generated panel, Settings-panel registration, profiles; UI lint rules
 - [ ] **Step 7** — Themes (`vanilla`, `pixel`, `glass`, `parchment`), HTML preview renderer, `FKGallery` showcase addon
 - [ ] **Step 8** — Feature modules ("hooks"): tooltips, items, bags, minimap button + compartment, comms, combat queue, secrets helpers, movers, map pins, chat
@@ -241,3 +241,21 @@ columns, selection), `Tree` (collapsible, lazy), composite rows — `ToggleRow`,
   the classic art set.
 - Emulator additions: slider thumb and status-bar textures are positioned as the engine does;
   `H.LayoutIssues` also reports frames outside their window.
+
+### Step 5 (2026-11-16) — and the preview renderer from step 7, done early
+- `fk tree <addon> [--do LUA] [--theme T]` prints the frame tree + layout issues (exit 1 if
+  any); `fk preview <addon> [--do LUA] [--theme a,b] [--name suffix] [--full]` writes
+  `.preview/<addon>-<theme>-<suffix>.html/.png` (headless Firefox). `--do` snippets see `H`,
+  `ns`, `FK`. Renderer: `harness/wow/render.lua`; Blizzard art is drawn from its `ART` table
+  (unknown files show as a magenta dashed box: add a stand-in there).
+- New widgets: `Widgets/Scroll.lua` (ScrollArea, ScrollList, Table, Tree, TextArea,
+  `FK.ScrollBar`), `Widgets/Rows.lua` (OptionRow and its named shapes ToggleRow, SliderRow,
+  ToggleSliderRow, ToggleDropdownRow, ToggleListRow; CheckList, ReorderList, MoneyInput),
+  `Widgets/Nav.lua` (Tabs, SideNav, `FK.Dialog/Confirm/Prompt/ReloadPrompt`, `FK.Menu`,
+  `FK.Toast`, `FK.Autocomplete`), `Widgets/Display.lua` (TimerBar, BarList, IconGrid, Tracker).
+- Skipped on purpose: drag-and-drop reordering (ReorderList uses up/down arrows), keyboard
+  navigation inside popup lists, column resize persistence (the Table mutates
+  `opts.columns[i].width`; save that table if persistence is wanted).
+- `FK.Build` leaves `children` alone for widgets with `ownsChildren` (OptionRow family).
+- Layout rule learned: a widget that lays out an inner container and is itself told about that
+  container's size changes needs a re-entrancy guard (see OptionRow.Arrange, ScrollArea.Layout).
