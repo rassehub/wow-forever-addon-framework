@@ -202,9 +202,13 @@ local SOUNDS = {
 	click = "IG_MAINMENU_OPTION", open = "IG_MAINMENU_OPEN", close = "IG_MAINMENU_CLOSE",
 	tab = "IG_CHARACTER_INFO_TAB",
 }
-function FK.Sound(name)
-	local id = SOUNDKIT[SOUNDS[name] or name]
-	if id and not FK.muted then PlaySound(id) end
+-- FK.Sound("click") (a role above), a SOUNDKIT name, a sound kit id, or a file path / file id
+-- with a channel: FK.Sound("Interface\\AddOns\\Me\\ding.ogg", "Master"). FK.muted silences all.
+function FK.Sound(name, channel)
+	if FK.muted then return end
+	if type(name) == "string" and name:find("[\\/]") then return PlaySoundFile(name, channel or "Master") end
+	local id = type(name) == "number" and name or SOUNDKIT[SOUNDS[name] or name]
+	if id then PlaySound(id, channel) end
 end
 
 -- Which of a stateful surface's specs applies to a widget right now.

@@ -71,6 +71,7 @@ for _, file in ipairs(files) do
 			failed = failed + 1
 		end
 		for _, t in ipairs(tests) do
+			H.fixtures = nil -- fresh game state per test; H.Reload keeps it, as /reload does
 			H.Reset()
 			setfenv(t.fn, setmetatable(env, { __index = _G }))
 			local good2, testErr = xpcall(t.fn, traceback)

@@ -453,11 +453,24 @@ function H.Install()
 	-----------------------------------------------------------------------------------------
 	local p = fx.player
 	local function combatSecret(v) return (H.inCombat or H.forceSecrets) and H.Secret(v) or v end
-	G.UnitName = function(unit) if unit == "player" then return p.name, nil end end
-	G.UnitFullName = function(unit) if unit == "player" then return p.name, p.realm end end
+	-- other units: fx.units = { party1 = { name, realm, class, className } }, fx.group = { "party1", ... }
+	local function other(unit) return fx.units and fx.units[unit] end
+	G.UnitName = function(unit)
+		if unit == "player" then return p.name, nil end
+		local u = other(unit)
+		if u then return u.name, u.realm end
+	end
+	G.UnitFullName = function(unit)
+		if unit == "player" then return p.name, p.realm end
+		local u = other(unit)
+		if u then return u.name, u.realm or p.realm end
+	end
 	G.UnitNameUnmodified = G.UnitName
 	G.GetUnitName = function(unit) return (G.UnitName(unit)) end
-	G.UnitClass = function(unit) if unit == "player" then return p.className, p.class, p.classId end end
+	G.UnitClass = function(unit)
+		local u = unit == "player" and p or other(unit)
+		if u then return u.className, u.class, u.classId end
+	end
 	G.UnitClassBase = function(unit) if unit == "player" then return p.class, p.classId end end
 	G.UnitLevel = function(unit) return unit == "player" and p.level or 0 end
 	G.UnitRace = function(unit) if unit == "player" then return p.race, p.race end end
@@ -611,11 +624,15 @@ function H.Install()
 	G.C_Map = namespace("C_Map", {
 		GetBestMapForUnit = function() return fx.mapID or 1453 end,
 		GetMapInfo = function(id) return { mapID = id, name = fx.maps and fx.maps[id] or ("Map " .. id), mapType = 3, parentMapID = 0 } end,
+		SetUserWaypoint = function(point) H.waypoint = point end,
+		GetUserWaypoint = function() return H.waypoint end,
 		GetPlayerMapPosition = function()
 			local pos = fx.position or { 0.5, 0.5 }
 			return { x = pos[1], y = pos[2], GetXY = function(self) return self.x, self.y end }
 		end,
 	})
+	G.UiMapPoint = { CreateFromCoordinates = function(mapID, x, y) return { uiMapID = mapID, position = { x = x, y = y } } end }
+	G.C_SuperTrack = namespace("C_SuperTrack", { SetSuperTrackedUserWaypoint = function(v) H.superTracked = v end })
 	local function coins(copper)
 		local g, s, c = math.floor(copper / 10000), math.floor(copper / 100) % 100, copper % 100
 		local out = {}
@@ -648,6 +665,34 @@ function H.Install()
 	end
 	G.GetBindingAction = function(key) return bindings[key] or "" end
 	G.SaveBindings, G.GetCurrentBindingSet = function() end, function() return 1 end
+	H.overrides = {} -- key -> { owner, button name }
+	G.SetOverrideBindingClick = function(owner, _, key, buttonName, mouseButton)
+		if H.inCombat then error("SetOverrideBindingClick is protected in combat", 2) end
+		H.overrides[key] = { owner = owner, button = buttonName, mouseButton = mouseButton }
+	end
+	G.ClearOverrideBindings = function(owner)
+		if H.inCombat then error("ClearOverrideBindings is protected in combat", 2) end
+		for k, o in pairs(H.overrides) do if o.owner == owner then H.overrides[k] = nil end end
+	end
+	-- Presses a key as the client would: an override binding clicks its button.
+	function H.PressBinding(key)
+		local o = H.overrides[key] or error("no override binding on " .. key, 2)
+		local b = G[o.button] or error("binding target " .. o.button .. " does not exist", 2)
+		H.run(b, "OnClick", o.mouseButton or "LeftButton", true)
+	end
+	-- World map: the canvas child pins attach to, and the map id it shows.
+	local wm = H.CreateFrame("Frame", "WorldMapFrame", ui)
+	wm:SetSize(1002, 668)
+	wm:SetPoint("CENTER")
+	wm:Hide()
+	wm.ScrollContainer = H.CreateFrame("Frame", nil, wm)
+	wm.ScrollContainer:SetAllPoints()
+	wm.ScrollContainer.Child = H.CreateFrame("Frame", nil, wm.ScrollContainer)
+	wm.ScrollContainer.Child:SetAllPoints()
+	wm.mapID = fx.mapID or 1453
+	function wm:GetMapID() return self.mapID end
+	function wm:OnMapChanged() end
+	function wm:SetMapID(id) self.mapID = id self:OnMapChanged() end
 	G.AddonCompartmentFrame = { RegisterAddon = function(_, info) H.compartment = H.compartment or {} table.insert(H.compartment, info) end }
 end
 

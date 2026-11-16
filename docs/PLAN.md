@@ -17,7 +17,7 @@ notes, commit.** Research that the decisions rest on is in [`research/`](researc
 - [x] **Step 5** — Widgets II (collections): scroll list, table, tree, composite rows (toggle+slider, toggle+list…), reorder list, checklist, tabs, dialogs, menu, toast, bars, icon grid, money
 - [x] **Step 6** — Options DSL: declarative settings → generated panel, Settings-panel registration, profiles; UI lint rules
 - [x] **Step 7** — Themes (`vanilla`, `pixel`, `glass`, `parchment`), HTML preview renderer, `FKGallery` showcase addon
-- [ ] **Step 8** — Feature modules ("hooks"): tooltips, items, bags, minimap button + compartment, comms, combat queue, secrets helpers, movers, map pins, chat
+- [x] **Step 8** — Feature modules ("hooks"): tooltips, items, bags, minimap button + compartment, comms, combat queue, secrets helpers, movers, map pins, chat
 - [ ] **Step 9** — Game data: QuestieDB + Auctionator runtime bridges, offline `fk data` tools
 - [ ] **Step 10** — Live testing: `fk link`, `FKDev` in-game addon, `fk live`, verified against the real client
 - [ ] **Step 11** — Scaffold (`fk new`), `fk build`, three example addons of different kinds
@@ -298,3 +298,28 @@ columns, selection), `Tree` (collapsible, lazy), composite rows — `ToggleRow`,
 - Known, left: `FK.Money` coin colours (gold/silver/copper) are faint on parchment; pixel
   BarList labels are white on a light-blue fill (low contrast). Glass/parchment colours are
   untested in game (step 10).
+
+### Step 8 (2026-11-16)
+- `Features/` (each file has a `---@module` header for the step-12 catalog): `Secret`
+  (`Is/Readable/Use/Text`), `Combat` (`FK:AfterCombat(fn, key)`, `FK:InCombat`), `Unit`/`Group`
+  (`FullName`, `ClassColor`, `Colored`; `Channel`, `Units`, `Each`), `Items` (`Info`, async
+  `Load`, `ID`, `QualityColor`, `Colored`), `Bags` (`Scan/Count/Free/Each`, throttled `fk.bags`
+  event), `Tooltip` (`OnItem/OnUnit` post-calls limited to GameTooltip/ItemRefTooltip,
+  `Show/Hide`), `Chat` (`Send` split at 255 on words, `Split`, `Strip`, `Color`, `ItemLink`),
+  `Comm` (`FK:Comm(prefix, fn, {self})` → `:Send(data, channel, target)`; serialized with
+  `FK.Serialize`, S/F/M/L part markers, token bucket 10/s burst 10, malformed input dropped),
+  `Minimap` (`FK.MinimapButton` edge drag + saved `{angle, hide}`, `FK.Compartment`), `Keybind`
+  (`FK.Keybind(key, fn)` via override bindings on a named hidden button; deferred in combat),
+  `Movers` (`Add/Unlock/Lock/Toggle`, locks itself on entering combat), `MapPins` (own layer on
+  `WorldMapFrame.ScrollContainer.Child`, refresh on `OnMapChanged`/show/resize; `Waypoint`).
+  `FK.Sound` (Core/Theme.lua) now also takes sound kit ids and file paths with a channel.
+- Emulator: `fx.units`/`fx.group` for party units, `WorldMapFrame` with `SetMapID`,
+  `SetOverrideBindingClick`/`ClearOverrideBindings` (+ `H.PressBinding`, `H.overrides`),
+  `C_Map.SetUserWaypoint`, `UiMapPoint`, `C_SuperTrack`. **Runner bug fixed:** fixtures were
+  not reset between tests in one file (mutations leaked); `H.Reload` still keeps them.
+- In-game unknowns for step 10: whether `WorldMapFrame` exists at login in Forever (MapPins
+  raises a clear error if not), map pin sizing under zoom, minimap button art paths, that
+  `PLAYER_REGEN_DISABLED` runs before lockdown (Movers relies on it), `CHAT_MSG_ADDON` sender
+  format for same-realm players.
+- Skipped: a Blizzard `MapCanvasDataProvider` integration (own overlay instead), LibDataBroker,
+  comm compression (`C_EncodingUtil` exists; add if payloads grow).

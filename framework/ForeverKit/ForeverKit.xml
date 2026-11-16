@@ -24,4 +24,16 @@
 	<Script file="Widgets\Nav.lua"/>
 	<Script file="Widgets\Display.lua"/>
 	<Script file="Widgets\Options.lua"/>
+	<Script file="Features\Secret.lua"/>
+	<Script file="Features\Combat.lua"/>
+	<Script file="Features\Unit.lua"/>
+	<Script file="Features\Items.lua"/>
+	<Script file="Features\Bags.lua"/>
+	<Script file="Features\Tooltip.lua"/>
+	<Script file="Features\Chat.lua"/>
+	<Script file="Features\Comm.lua"/>
+	<Script file="Features\Minimap.lua"/>
+	<Script file="Features\Keybind.lua"/>
+	<Script file="Features\Movers.lua"/>
+	<Script file="Features\MapPins.lua"/>
 </Ui>
