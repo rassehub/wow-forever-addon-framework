@@ -1,6 +1,8 @@
 local _, ns = ...
 local FK = ns.FK
 
+---@module DB  Saved settings: ns.db = FK:NewDB("MyAddonDB", { profile = {...}, global = {...}, char = {...} }, { version, migrate(sv, from) }); declare MyAddonDB in ## SavedVariables. db.profile/global/char from FK:OnLoad on. db:Get(path), db:Set(path, value), db:OnChange(path, fn(value, path)), db:Reset(path); profiles: GetProfile, Profiles, SetProfile, CopyProfile, DeleteProfile; db:Export() / db:Import(text) (parsed, never executed). Values equal to defaults are not saved.
+
 -- Saved settings with defaults, profiles and per-character data in ONE account-wide
 -- SavedVariable (declare it in the TOC: ## SavedVariables: MyAddonDB).
 --

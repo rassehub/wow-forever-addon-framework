@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: npc-spawn-finder
+expected_outcome: |
+  A window addon NpcFinder with a text box and a list/table of zone + coordinates from QuestieDB, QuestieDB as an optional runtime dependency, no QuestieDB data or code copied, a clear message when QuestieDB is missing, and tests using a stand-in.

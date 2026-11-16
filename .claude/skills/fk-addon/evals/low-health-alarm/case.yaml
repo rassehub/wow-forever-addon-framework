@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: low-health-alarm
+expected_outcome: |
+  The response explains that on Forever player health is a secret value in combat, so an addon cannot compare it against 30% and this alarm cannot be built as asked; it offers a buildable alternative (e.g. displaying health, or relying on the game's own low-health warning) instead of shipping code that raises errors in combat.

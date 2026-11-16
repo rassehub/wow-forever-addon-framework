@@ -1,6 +1,8 @@
 local ADDON, ns = ...
 local FK = ns.FK
 
+---@module Slash  FK:Slash({ "/myaddon", "/ma" }, { [""] = fn, config = { "help text", fn(arg) } }) with "help" listing subcommands, or FK:Slash(cmds, fn(msg)) for the raw argument string.
+
 -- FK:Slash({ "/goals", "/gn" }, {
 --     [""]   = function() ns.window:Toggle() end,          -- no argument
 --     config = { "Open the settings", function() ... end },

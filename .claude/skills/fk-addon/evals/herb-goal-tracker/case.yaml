@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: herb-goal-tracker
+expected_outcome: |
+  A tracker-style addon HerbGoals that lists the three herbs with bag count vs goal, goals settable by the user, a size/scale setting that is a slider, passing emulator tests and clean lint.

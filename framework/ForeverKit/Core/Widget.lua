@@ -1,5 +1,7 @@
 local _, ns = ...
 local FK = ns.FK
+
+---@module Widget  FK.Define(kind, methods, build) makes FK.<Kind>(parent, opts). Every widget understands opts width, height, point / points, tooltip, disabled, hidden, onChange(value, widget) (user changes only) and has SetEnabled, IsEnabled, SetTooltip, and where it holds a value SetValue (silent) and GetValue. FK.Frame(type, parent, name) makes a themable frame (BackdropTemplate). FK.Build(parent, { "Kind", id = "x", children = {...} }) builds a tree from data and returns root, refs.
 local Theme = FK.Theme
 
 -- Every ForeverKit widget is a plain Frame with methods mixed in, created by

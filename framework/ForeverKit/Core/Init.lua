@@ -13,6 +13,8 @@ local FK = {
 }
 ns.FK = FK
 
+---@module FK  The library object, in the addon's namespace: local ADDON, ns = ...; local FK = ns.FK. FK.addon (folder name), FK.title (TOC title), FK.version, FK.dev (true: design warnings print in chat), FK:Warn(code, message) records a design warning in FK.warnings.
+
 -- A mistake in how the library is used that is not fatal: wrong control for the data, missing
 -- label, and so on. Recorded always, printed once each in dev mode.
 function FK:Warn(code, message)

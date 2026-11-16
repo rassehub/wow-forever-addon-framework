@@ -1,6 +1,8 @@
 local ADDON, ns = ...
 local FK = ns.FK
 
+---@module Events  FK:On(event, fn) -> handle (game events and the library's own "fk.*" events), FK:Once, FK:Off(handle), FK:Emit(name, ...). FK:OnLoad(fn) runs once saved variables are loaded (read the DB here, not at file load), FK:OnLogin(fn) after PLAYER_LOGIN. FK.inWorld turns true one frame after the first PLAYER_ENTERING_WORLD ("fk.world"): the client closes Escape-closable windows just before.
+
 -- One registry for game events (UPPER_SNAKE names) and the addon's own messages (any other
 -- name, by convention "lower.dotted"):
 --   local h = FK:On("BAG_UPDATE_DELAYED", fn)     FK:On("goals.changed", fn)

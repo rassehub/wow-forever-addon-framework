@@ -1,6 +1,8 @@
 local _, ns = ...
 local FK = ns.FK
 
+---@module Timer  FK:After(seconds, fn) and FK:Every(seconds, fn, times) return cancellable timers; FK:Debounce(seconds, fn) runs after a burst ends (search boxes, BAG_UPDATE); FK:Throttle(seconds, fn) at most once per window, plus once at its end.
+
 function FK:After(seconds, fn) return C_Timer.NewTimer(seconds, fn) end
 function FK:Every(seconds, fn, times) return C_Timer.NewTicker(seconds, fn, times) end
 

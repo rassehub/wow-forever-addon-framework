@@ -1,6 +1,8 @@
 local _, ns = ...
 local FK = ns.FK
 
+---@module Util  FK:Print(...) (addon-prefixed chat), FK.Money(copper, plain), FK.Number(n, short), FK.Duration(seconds), FK.Round(v, step), FK.Clamp, FK.Copy, FK.Equal, FK.GetPath/SetPath(t, "a.b.c"), FK.Hex(r, g, b), FK.Colorize(text, r, g, b), FK.Pixel(n) (n physical pixels in UI units), FK.Pool(create, reset), FK.Serialize(v) / FK.Deserialize(text) (data only).
+
 function FK.Clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
 
 -- Rounds to the nearest multiple of step (default 1), without float noise like 0.30000000004.

@@ -1,6 +1,8 @@
 local _, ns = ...
 local FK = ns.FK
 
+---@module Theme  Token-based skinning; widgets read the current theme only. FK.Theme:Set(name) re-skins everything live; FK.Theme:Names(); FK.Theme.Register(name, { extends = "pixel", color = {...}, font = {...}, surface = {...}, icon = {...}, metric = {...} }) (Themes/Base.lua lists every token). Built in: pixel, vanilla, glass, parchment. FK.Theme.Color(role), FK.Theme.Font(fontString, role, colorRole), FK.Theme.Paint(frame, surfaceSpec), FK.Sound(roleOrKitOrFile, channel), FK.muted.
+
 -- Themes are token tables. Widgets never hard-code a colour, font, texture or size: they ask
 -- the current theme. Switching theme re-skins every live widget.
 --

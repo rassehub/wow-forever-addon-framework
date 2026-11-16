@@ -94,7 +94,7 @@ local PAGES = {
 		{ "IconGrid", id = "icons", size = 32 },
 		{ "Row", children = {
 			{ "Button", text = "Dialog", onClick = function() FK.Confirm("Delete this goal?", function() end) end },
-			{ "Button", text = "Menu", onClick = function(b) FK.Menu({ { text = "Edit" }, { text = "Delete" } }, b) end },
+			{ "Button", text = "Menu", onClick = function(b) FK.Menu({ { label = "Edit" }, { label = "Delete" } }, b) end },
 			{ "Button", text = "Toast", onClick = function() FK.Toast("Saved") end },
 		} },
 	} })
