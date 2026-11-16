@@ -5,6 +5,7 @@
 local H = require("wow.state")
 require("wow.objects")
 require("wow.sim")
+local Encoding = require("wow.encoding")
 
 local realType, realFormat, realPrint, osdate = type, string.format, print, os.date
 local G = _G
@@ -511,6 +512,7 @@ function H.Install()
 	G.Enum = namespace("Enum", {
 		TooltipDataType = { Item = 0, Spell = 1, Unit = 2 },
 		ItemQuality = { Poor = 0, Common = 1, Uncommon = 2, Rare = 3, Epic = 4, Legendary = 5 },
+		CompressionMethod = { Deflate = 0, Zlib = 1 },
 	})
 
 	-----------------------------------------------------------------------------------------
@@ -631,6 +633,9 @@ function H.Install()
 			return { x = pos[1], y = pos[2], GetXY = function(self) return self.x, self.y end }
 		end,
 	})
+	local enc = {}
+	for k, v in pairs(Encoding) do enc[k] = v end -- a fresh table: namespace() sets a metatable on it
+	G.C_EncodingUtil = namespace("C_EncodingUtil", enc)
 	G.UiMapPoint = { CreateFromCoordinates = function(mapID, x, y) return { uiMapID = mapID, position = { x = x, y = y } } end }
 	G.C_SuperTrack = namespace("C_SuperTrack", { SetSuperTrackedUserWaypoint = function(v) H.superTracked = v end })
 	local function coins(copper)

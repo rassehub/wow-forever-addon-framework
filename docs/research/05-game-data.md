@@ -35,8 +35,21 @@ end
   specialFlags, parentQuest, reputationReward, breadcrumbForQuestId, breadcrumbs,
   extraObjectives, requiredSpell, requiredMaxLevel, …`.
   The authoritative list is `QuestieDB/Types/*.t.lua` and `LibQuestieDB.Meta.<Entity>Meta`.
-- Spawn/zone value shapes are **not yet verified here** — step 9 of the plan loads the DB in the
-  emulator and documents the real shapes. `Q.EraToForever(areaId, x, y)` converts Era-sourced
+- Value shapes, **verified with `fk data` against the local v1.0.13 install (step 9)**:
+  - `spawns` (Npc, Object): `{ [zoneID] = { { x, y }, ... } }`, x/y in 0–100, e.g. Hogger
+    `{ [12] = { { 25.02, 92.9 } } }`; `zoneID` is the main zone (an AreaTable id, not a uiMapID:
+    convert through `support/Forever/Zones/areaIdToUiMapId.lua`'s table at runtime).
+  - Item `npcDrops`, `objectDrops`, `itemDrops`, `vendors`, `relatedQuests`: flat id lists; absent
+    (nil) when empty. Common cloth such as Linen Cloth has no `npcDrops` at all (only containers
+    in `objectDrops`): "where does it drop" answers can be incomplete by design.
+  - Scalar fields with no value read as `0` (`startQuest = 0`, `teachesSpell = 0`), not nil.
+  - Quest `startedBy`/`finishedBy`: positional `{ npcIds, objectIds, itemIds }` (only the first
+    present for NPC-given quests). `objectives`: sparse positional
+    `{ [1] = creatures, [2] = objects, [3] = items, ... }`, each a list of `{ id, text?, extra? }`
+    with holes (`{ [1] = 750, [3] = 0 }` for 8 Tough Wolf Meat's item objective).
+  - The baked store is TOC metadata: Base64 of zlib-compressed CBOR for ID headers (chunked
+    across `-1..-n` keys behind a `~n~` header) and Base64 CBOR for scalar rows. The emulator's
+    `C_EncodingUtil` (harness/wow/encoding.lua) decodes it; loading takes about one second. `Q.EraToForever(areaId, x, y)` converts Era-sourced
   zone percentages (0–100) and must never be applied to points that are already Forever's.
 - `BuildNameIndex` is a full pass over all names: run `BuildNameIndexAsync` in a coroutine, not
   at login.

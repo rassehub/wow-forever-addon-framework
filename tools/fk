@@ -258,6 +258,18 @@ def cmd_preview(args):
             print(png)
 
 
+def cmd_data(args):
+    """Look up items, NPCs, objects and quests in the installed QuestieDB (through the emulator)."""
+    db = Path(args.questiedb) if args.questiedb else None
+    if not db:
+        wow = wow_dir()
+        db = wow / "Interface" / "AddOns" / "QuestieDB"
+    if not db.is_dir():
+        die(f"QuestieDB not found at {db}: install it, or pass --questiedb DIR")
+    extra = (["--json"] if args.json else []) + (["--raw"] if args.raw else []) + (["--fields", args.fields] if args.fields else [])
+    lua(HARNESS / "data.lua", db, args.entity, " ".join(args.query), *extra)
+
+
 def main():
     parser = argparse.ArgumentParser(prog="fk", description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -285,6 +297,15 @@ def main():
     p = sub.add_parser("lint", help="check an addon: TOC, removed APIs, secret-value misuse, UI rules, global leaks, layout")
     p.add_argument("addon", help="addon folder, or the name of one in examples/ or addons/")
     p.set_defaults(func=cmd_lint)
+
+    p = sub.add_parser("data", help="look up QuestieDB data offline: fk data item \"Linen Cloth\"")
+    p.add_argument("entity", choices=["item", "npc", "object", "quest"])
+    p.add_argument("query", nargs="+", help="id, or exact name")
+    p.add_argument("--json", action="store_true", help="JSON instead of Lua-style output")
+    p.add_argument("--fields", help="comma-separated fields to show (default: all)")
+    p.add_argument("--raw", action="store_true", help="plain ids in drop/vendor/quest lists, without names")
+    p.add_argument("--questiedb", help="QuestieDB folder (default: the one in the configured WoW install)")
+    p.set_defaults(func=cmd_data)
 
     p = sub.add_parser("preview", help="render an addon's UI to .preview/<name>.html and .png")
     ui_args(p)
