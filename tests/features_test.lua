@@ -380,3 +380,20 @@ test("minimap skin: pins outside a rectangle's band are hidden, and come back", 
 	FK.MinimapSkin.Apply({ shape = "square", width = 400 })
 	eq(outside:GetAlpha(), 0.8, "a square map shows every pin")
 end)
+
+test("minimap skin: the zone name, calendar and tracking follow a moved map; reset puts them back", function()
+	local FK = start()
+	local header = MinimapCluster.ZoneTextButton
+	local hx0, hy0 = header:GetCenter()
+	local _, mt0 = Minimap:GetCenter()
+	local gapAbove = select(2, header:GetCenter()) - Minimap:GetTop()
+	FK.MinimapSkin.Apply({ shape = "rect", width = 400, height = 200, position = { point = "BOTTOM", relPoint = "BOTTOM", x = 0, y = 200 } })
+	local v = FK.MinimapSkin.view
+	local hx, hy = header:GetCenter()
+	near(hy - v:GetTop(), gapAbove, 0.6, "the header keeps its distance above the map")
+	ok(hy < hy0 - 100, "and moved down with it")
+	ok(GameTimeFrame:GetCenter() > hx, "the calendar stays right of the header")
+	FK.MinimapSkin.Reset()
+	local hx2, hy2 = header:GetCenter()
+	near(hx2, hx0, 0.5) near(hy2, hy0, 0.5)
+end)

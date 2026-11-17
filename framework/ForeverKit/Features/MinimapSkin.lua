@@ -2,7 +2,7 @@ local _, ns = ...
 local FK = ns.FK
 local Theme = FK.Theme
 
----@module MinimapSkin  Re-styles and re-shapes the game's minimap (minimap and navigator addons). FK.MinimapSkin.Apply({ shape = "round"|"square"|"rect", width, height (rect: any ratio 1:4..4:1; square/round use width), border = "thin"|"metal"|"soft"|"double"|"none" (rings when round; "none" keeps the client's ring, which only fits a round map at the default size: otherwise there is no border), borderColor (theme colour or {r,g,b}), scale (whole cluster), position = { point, relPoint, x, y } (detaches the map from the cluster, e.g. bottom centre for a navigator), rotate (the map turns with you; round only: the client turns a masked square as a whole, seen in game), wheelZoom (default true), hide = { "ring", "header", "tracking", "calendar", "compartment" }, drawer = true (other addons' minimap buttons in a flyout list with names), unlock = true (drag handle and resize grip; report changes to onLayout({ position, width, height }) and save them) }). Calling Apply again re-applies; FK.MinimapSkin.Reset() restores everything. Nothing is saved by the module. How the client renders the minimap was measured in game (step 14): it is always square, so rectangles are a square map under a band mask.
+---@module MinimapSkin  Re-styles and re-shapes the game's minimap (minimap and navigator addons). FK.MinimapSkin.Apply({ shape = "round"|"square"|"rect", width, height (rect: any ratio 1:4..4:1; square/round use width), border = "thin"|"metal"|"soft"|"double"|"none" (rings when round; "none" keeps the client's ring, which only fits a round map at the default size: otherwise there is no border), borderColor (theme colour or {r,g,b}), scale (whole cluster), position = { point, relPoint, x, y } (detaches the map from the cluster, e.g. bottom centre for a navigator), rotate (the map turns with you; round only: the client turns a masked square as a whole, seen in game), wheelZoom (default true), hide = { "ring", "header", "tracking", "calendar", "compartment" }, drawer = true (other addons' minimap buttons in a flyout list with names), unlock = true (drag handle and corner grips; report changes to onLayout({ position, width, height }) and save them), attach (the zone name, clock, buttons and other cluster pieces follow the map; default on when position is set) }). Calling Apply again re-applies; FK.MinimapSkin.Reset() restores everything. Nothing is saved by the module. How the client renders the minimap was measured in game (step 14): it is always square, so rectangles are a square map under a band mask.
 local Skin = { hidden = {}, moved = {} }
 FK.MinimapSkin = Skin
 local OWN = {} -- frames this module puts on the minimap (never culled)
@@ -198,6 +198,7 @@ local function buildHandles(o)
 				Minimap:ClearAllPoints()
 				Minimap:SetPoint("CENTER", UIParent, "BOTTOMLEFT", o2.position.x, o2.position.y)
 				Skin.KeepOnScreen()
+				if Skin.attached then Skin.Attach() end
 			end)
 			g:SetScript("OnDragStop", function()
 				g.sizing = nil
@@ -252,19 +253,96 @@ local function cullPins()
 			if outside and not f.fkCulled then
 				f.fkCulled = f:GetAlpha()
 				f:SetAlpha(0)
+				-- their addon keeps setting the alpha (Questie fades by distance, seen in game): while
+				-- culled, any alpha it sets is remembered and the pin stays invisible
+				if not f.fkCullHook then
+					f.fkCullHook = true
+					hooksecurefunc(f, "SetAlpha", function(self, a)
+						if self.fkCulled and a > 0 then self.fkCulled = a self:SetAlpha(0) end
+					end)
+				end
 			elseif not outside and f.fkCulled then
-				f:SetAlpha(f.fkCulled)
-				f.fkCulled = nil
+				local a = f.fkCulled
+				f.fkCulled = nil -- first, so the alpha hook lets this through
+				f:SetAlpha(a)
 			end
 		end
 	end
 end
 local function uncullPins()
 	for _, f in ipairs({ Minimap:GetChildren() }) do
-		if f.fkCulled then f:SetAlpha(f.fkCulled) f.fkCulled = nil end
+		if f.fkCulled then
+			local a = f.fkCulled
+			f.fkCulled = nil
+			f:SetAlpha(a)
+		end
 	end
 end
 Skin.CullPins = cullPins
+
+-- The pieces around the map (zone name, tracking, calendar, compartment, clock, coordinates and
+-- whatever other addons put in the cluster) follow it when it moves: each keeps its side of the
+-- map and its distance from that edge. Found generically: the cluster's other children, and the
+-- map container's other children.
+local function pieces()
+	local list, container = {}, Minimap:GetParent()
+	local function add(parent, except)
+		for _, f in ipairs({ parent:GetChildren() }) do
+			if f ~= except and not OWN[f] and f ~= Skin.handle then list[#list + 1] = f end
+		end
+	end
+	if MinimapCluster then add(MinimapCluster, container ~= MinimapCluster and container or Minimap) end
+	if container and container ~= MinimapCluster and container ~= UIParent then add(container, Minimap) end
+	return list
+end
+
+-- Where each piece sits relative to the client's own map: measured once, before anything moves.
+local function measurePieces()
+	local orig = Skin.original
+	do
+		local l, r, t, b = Minimap:GetLeft(), Minimap:GetRight(), Minimap:GetTop(), Minimap:GetBottom()
+		local cx, cy = (l + r) / 2, (t + b) / 2
+		orig.pieces = {}
+		for _, f in ipairs(pieces()) do
+			local x, y = f:GetCenter()
+			if x then
+				local pts = {}
+				for i = 1, f:GetNumPoints() do pts[i] = { f:GetPoint(i) } end
+				local k = f:GetEffectiveScale() / Minimap:GetEffectiveScale()
+				x, y = x * k, y * k
+				local side = y > t and "TOP" or y < b and "BOTTOM" or x < l and "LEFT" or x > r and "RIGHT" or "CENTER"
+				local dx = (side == "LEFT" and x - l) or (side == "RIGHT" and x - r) or (x - cx) / (r - l)
+				local dy = (side == "TOP" and y - t) or (side == "BOTTOM" and y - b) or (y - cy) / (t - b)
+				orig.pieces[#orig.pieces + 1] = { frame = f, points = pts, side = side, dx = dx, dy = dy }
+			end
+		end
+	end
+end
+
+function Skin.Attach()
+	local orig, view = Skin.original, Skin.view
+	if not orig.pieces then return end
+	for _, p in ipairs(orig.pieces) do
+		local f, side = p.frame, p.side
+		local k = Minimap:GetEffectiveScale() / f:GetEffectiveScale()
+		-- along the edge: the same fraction of the map's width or height; across it: the same gap
+		local x = (side == "LEFT" or side == "RIGHT") and p.dx or p.dx * view:GetWidth()
+		local y = (side == "TOP" or side == "BOTTOM") and p.dy or p.dy * view:GetHeight()
+		f:ClearAllPoints()
+		f:SetPoint("CENTER", view, side, x * k, y * k)
+	end
+	Skin.attached = true
+end
+
+local function detach()
+	local orig = Skin.original
+	if not (Skin.attached and orig and orig.pieces) then return end
+	for _, p in ipairs(orig.pieces) do
+		p.frame:ClearAllPoints()
+		for _, pt in ipairs(p.points) do p.frame:SetPoint(unpack(pt)) end
+	end
+	Skin.attached = nil
+end
 
 -- Keeps the whole square map on screen. The client always renders the minimap as a square; when
 -- part of that square is off screen it squeezes the map into what is left while our border stays
@@ -308,7 +386,7 @@ function Skin.Shape(o)
 		local elapsed = 0
 		view:SetScript("OnUpdate", function(_, dt)
 			elapsed = elapsed + dt
-			if elapsed < 0.1 then return end
+			if elapsed < 0.03 then return end
 			elapsed = 0
 			if Skin.options and Skin.options.shape == "rect" then cullPins() end
 		end)
@@ -367,6 +445,7 @@ function Skin.Apply(o)
 		local pts = {}
 		for i = 1, Minimap:GetNumPoints() do pts[i] = { Minimap:GetPoint(i) } end
 		Skin.original = { width = Minimap:GetWidth(), points = pts, rotate = C_CVar and (C_CVar.GetCVar("rotateMinimap") or "0") }
+		measurePieces()
 	end
 	local shape = o.shape or "round"
 	if o.rotate and shape ~= "round" then
@@ -390,6 +469,8 @@ function Skin.Apply(o)
 	else
 		for _, p in ipairs(Skin.original.points) do Minimap:SetPoint(unpack(p)) end
 	end
+	-- the pieces around the map follow it when it is moved (or asked to)
+	if o.attach or (o.attach == nil and o.position) then Skin.Attach() end
 	if o.scale and MinimapCluster then
 		Skin.oldScale = Skin.oldScale or MinimapCluster:GetScale()
 		MinimapCluster:SetScale(o.scale)
@@ -423,6 +504,7 @@ function Skin.Reset(internal)
 		if wasShown then f:Show() end
 	end
 	uncullPins()
+	detach()
 	for _, f in ipairs(Skin.moved) do
 		f:SetParent(f.fkSkinParent)
 		f:ClearAllPoints()

@@ -56,13 +56,13 @@ local QUESTS = {
 }
 
 -- Minimap page: every MinimapSkin option as a live control. Not saved: /reload or Reset restores.
-local skin = { shape = "round", border = "none", width = 198, height = 198, scale = 1, wheelZoom = true, drawer = false, rotate = false, unlock = false, hide = {} }
+local skin = { shape = "round", border = "none", width = 198, height = 198, scale = 1, wheelZoom = true, drawer = false, rotate = false, unlock = false, attach = true, hide = {} }
 local minimapRefs
 local function applySkin()
 	local hide = {}
 	for name, on in pairs(skin.hide) do if on then hide[#hide + 1] = name end end
 	FK.MinimapSkin.Apply({ shape = skin.shape, border = skin.border, width = skin.width, height = skin.height, scale = skin.scale,
-		wheelZoom = skin.wheelZoom, drawer = skin.drawer, rotate = skin.rotate, unlock = skin.unlock, position = skin.position,
+		wheelZoom = skin.wheelZoom, drawer = skin.drawer, rotate = skin.rotate, unlock = skin.unlock, position = skin.position, attach = skin.attach,
 		hide = hide, borderColor = "accent",
 		onLayout = function(l)
 			skin.position, skin.width, skin.height = l.position, l.width, l.height
@@ -194,6 +194,7 @@ local PAGES = {
 		{ "Slider", id = "height", label = "Height (rectangle)", min = 100, max = 700, step = 2, value = 198, format = "%d", live = false, onChange = set("height") },
 		{ "Slider", label = "Scale (whole cluster)", min = 0.6, max = 2, step = 0.05, percent = true, value = 1, live = false, onChange = set("scale") },
 		{ "Toggle", id = "unlock", label = "Unlock: drag the map to move it, its corner to resize", value = false, onChange = set("unlock") },
+		{ "Toggle", id = "attach", label = "Zone name, clock and buttons follow the map", value = true, onChange = set("attach") },
 		{ "Toggle", id = "rotate", label = "Rotate the map with the player (round maps only)", value = false, onChange = set("rotate") },
 		{ "Toggle", label = "Zoom with the mouse wheel", value = true, onChange = set("wheelZoom") },
 		{ "Toggle", id = "drawer", label = "Collect addon buttons into a drawer", value = false, onChange = set("drawer") },
