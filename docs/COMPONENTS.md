@@ -151,6 +151,11 @@ Wrapping grid of icon buttons with count and quality border (bags, loot, collect
 Small always-visible frame listing a few lines of state (goals, timers, counts), the companion of a main window. opts: title, width (default 220), saved = { db, "profile.tracker" } (position), locked, background (default true), onClick(line, mouseButton). SetLines({ { text, value (right-aligned), color = theme colour or {r,g,b}, progress = 0..1, icon } }). Drag it by the title when unlocked; SetLocked(bool) hides the title bar's drag behaviour and makes the frame click-through.  
 <sub>[framework/ForeverKit/Widgets/Display.lua:190](../framework/ForeverKit/Widgets/Display.lua#L190)</sub>
 
+### SectionTracker
+
+Quest-tracker style frame: collapsible sections (header with arrow, icon, title, counter) of objective lines (bullet or tick, text, value, thin progress bar). Movable by its title, lockable, position saved, collapsed state remembered. opts: title, width (default 250), saved = { db, "profile.tracker" }, locked, background (default true), maxHeight (rows beyond it are cut with "+N more"). SetSections({ { id, title, icon (texture or icon-set name), color, collapsed, onClick(section, button), lines = { { text, value, done, progress = 0..1, color, onClick(line, button) } } } }). Methods: SetLocked, ResetPosition, Toggle(id).  
+<sub>[framework/ForeverKit/Widgets/Display.lua:310](../framework/ForeverKit/Widgets/Display.lua#L310)</sub>
+
 ### EditBox
 
 One-line text input. opts: label, value, placeholder, numeric, maxLetters, onChange(text) when committed (Enter or focus lost; Escape discards), onInput(text) on every keystroke, onEnter(text).  
@@ -185,6 +190,11 @@ Equal-width columns, filled row by row. opts: columns (default 2), gap, padding.
 
 Children left to right, wrapping to new lines (icon grids, tag lists). opts: gap, padding.  
 <sub>[framework/ForeverKit/Widgets/Layout.lua:162](../framework/ForeverKit/Widgets/Layout.lua#L162)</sub>
+
+### MapCanvas
+
+Pannable, zoomable texture canvas with pins (world maps, floor plans, boards). Drag to pan, wheel to zoom around the cursor, +/- buttons, cursor coordinates. opts: contentWidth, contentHeight (canvas units, e.g. 1002x668 for a world map), tiles = { { texture, x, y, w, h, coords } } in canvas units, zoom (1 = fit), maxZoom (default 6), controls (default true), showCoords (default true), onClick(x, y, mouseButton) with x, y in 0..1, onZoom(zoom). Methods: SetTiles(tiles), AddPin(x, y, { icon (texture or icon-set name), size, color, tooltip, onClick(pin, button) }) -> pin with :Remove() and :SetPosition(x, y), ClearPins(), SetZoom(zoom, x, y) (keeps the point x, y under the same spot), CenterOn(x, y), GetZoom(), CursorPosition() -> x, y or nil.  
+<sub>[framework/ForeverKit/Widgets/Map.lua:11](../framework/ForeverKit/Widgets/Map.lua#L11)</sub>
 
 ### Tabs
 

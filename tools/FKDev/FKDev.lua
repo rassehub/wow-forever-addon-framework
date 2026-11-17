@@ -49,7 +49,8 @@ local function rect(r)
 	local s = r:GetEffectiveScale() / UIParent:GetEffectiveScale()
 	return ("[%d,%d %dx%d]"):format(l * s + 0.5, (UIParent:GetHeight() - t * s) + 0.5, w * s + 0.5, h * s + 0.5)
 end
-function FKDev.Tree(root, maxDepth)
+-- withTextures: also list texture regions with their file or atlas (exploring Blizzard frames).
+function FKDev.Tree(root, maxDepth, withTextures)
 	if type(root) == "string" then root = _G[root] end
 	if not root then return { "no such frame" } end
 	local out = {}
@@ -61,9 +62,19 @@ function FKDev.Tree(root, maxDepth)
 		for _, r in ipairs({ f:GetRegions() }) do
 			if r:GetObjectType() == "FontString" and r:IsVisible() and (r:GetText() or "") ~= "" then
 				out[#out + 1] = ("%sFontString \"%s\" %s"):format(("  "):rep(depth + 1), r:GetText():gsub("\n", "\\n"), rect(r))
+			elseif withTextures and r:GetObjectType() == "Texture" and r:IsShown() then
+				local atlas = r.GetAtlas and r:GetAtlas()
+				out[#out + 1] = ("%sTexture%s %s %s %s"):format(("  "):rep(depth + 1), r:GetName() and (" " .. r:GetName()) or "",
+					atlas and ("atlas=" .. atlas) or ("file=" .. tostring(r:GetTexture())), r:GetDrawLayer() or "", rect(r))
 			end
 		end
 		for _, c in ipairs({ f:GetChildren() }) do walk(c, depth + 1) end
+		if withTextures and depth == 0 then
+			-- named children of the root that are hidden, too: things a skin may want to show again
+			for _, c in ipairs({ f:GetChildren() }) do
+				if not c:IsVisible() and c:GetName() then out[#out + 1] = "  (hidden) " .. c:GetObjectType() .. " " .. c:GetName() end
+			end
+		end
 	end
 	walk(root, 0)
 	return out
@@ -84,7 +95,7 @@ local function runTests()
 	return results
 end
 
--- A queue entry: { id, lua = { "code", ... }, tree = "FrameName", shot = true }
+-- A queue entry: { id, lua = { "code", ... }, tree = "FrameName", treeTextures = true, shot = true }
 local function runQueue(q)
 	local run = { id = q.id, time = now(), outputs = {} }
 	for i, code in ipairs(q.lua or {}) do
@@ -103,7 +114,7 @@ local function runQueue(q)
 		end
 		run.outputs[#run.outputs + 1] = out
 	end
-	if q.tree then run.tree = FKDev.Tree(q.tree) end
+	if q.tree then run.tree = FKDev.Tree(q.tree, q.treeDepth, q.treeTextures) end
 	if q.shot then C_Timer.After(1, function() Screenshot() end) end
 	return run
 end

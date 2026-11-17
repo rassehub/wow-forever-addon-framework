@@ -37,6 +37,24 @@ local function codexPage(_, node, section)
 		node.label, node.subtitle or "", (node.value == "dm" or node.value == "stocks") and "dungeons" or "profs", node.icon or "book")
 end
 
+-- Map page: the client's Eastern Kingdoms world map, 4x3 tiles of 256 px (1002x668 used).
+local function worldTiles(zone)
+	local tiles = {}
+	for i = 1, 12 do
+		tiles[i] = { texture = ("Interface\\WorldMap\\%s\\%s%d"):format(zone, zone, i), x = ((i - 1) % 4) * 256, y = math.floor((i - 1) / 4) * 256, w = 256, h = 256 }
+	end
+	return tiles
+end
+
+local QUESTS = {
+	{ id = "q1", title = "Wolves Across the Border", icon = "quest", lines = {
+		{ text = "Tough Wolf Meat", value = "6/8", progress = 0.75 },
+		{ text = "Talk to the hunter", done = true },
+	} },
+	{ id = "q2", title = "The Fargodeep Mine", icon = "quest", lines = { { text = "Explore the mine" } } },
+	{ id = "q3", title = "A Threat Within", icon = "quest-turnin", lines = { { text = "Report to the marshal", done = true } } },
+}
+
 local PAGES = {
 	{ id = "controls", label = "Controls", build = page({
 		{ "Heading", text = "Text" },
@@ -117,6 +135,13 @@ local PAGES = {
 			sections = function(node) if not node.children then return { { id = "overview", label = "Overview" }, { id = "notes", label = "Notes" } } end end })
 		ns.journal:Select("dm")
 	end },
+	{ id = "map", label = "Map", build = function(p)
+		local map = FK.MapCanvas(p, { points = { { "TOPLEFT" }, { "BOTTOMRIGHT" } }, contentWidth = 1002, contentHeight = 668, tiles = worldTiles("Azeroth") })
+		map:AddPin(0.43, 0.70, { icon = "skull", tooltip = { "The Deadmines", "Dungeon" } })
+		map:AddPin(0.46, 0.57, { icon = "flag", tooltip = "Stormwind" })
+		map:AddPin(0.52, 0.38, { icon = "ore", tooltip = "Mining route" })
+		ns.map = map
+	end },
 	{ id = "display", label = "Display", build = function(p)
 		local _, refs = FK.Build(p, { "ScrollArea", points = { { "TOPLEFT" }, { "BOTTOMRIGHT" } }, gap = 8, children = {
 		{ "TimerBar", id = "timer", label = "TimerBar", duration = 30 },
@@ -126,6 +151,7 @@ local PAGES = {
 			{ "Button", text = "Dialog", onClick = function() FK.Confirm("Delete this goal?", function() end) end },
 			{ "Button", text = "Menu", onClick = function(b) FK.Menu({ { label = "Edit" }, { label = "Delete" } }, b) end },
 			{ "Button", text = "Toast", onClick = function() FK.Toast("Saved") end },
+			{ "Button", text = "Quest tracker", onClick = function() ns.quests:SetShown(not ns.quests:IsShown()) end },
 		} },
 	} })
 		refs.timer:Start(30)
@@ -137,7 +163,7 @@ local PAGES = {
 }
 
 FK:OnLogin(function()
-	local db = FK:NewDB("FKGalleryDB", { profile = { theme = "pixel", window = {} } })
+	local db = FK:NewDB("FKGalleryDB", { profile = { theme = "pixel", window = {}, quests = {} } })
 	FK.Theme:Set(db.profile.theme)
 	local win = FK.Window(UIParent, { title = "ForeverKit Gallery", width = 760, height = 560, resizable = true, saved = { db, "profile.window" } })
 	local themes = {}
@@ -153,6 +179,9 @@ FK:OnLogin(function()
 	local tabs = FK.Tabs(win.content, { side = true, sideWidth = 120, tabs = PAGES })
 	tabs:SetPoint("TOPLEFT", 0, -(pick:GetHeight() + 8))
 	tabs:SetPoint("BOTTOMRIGHT")
+	ns.quests = FK.SectionTracker(UIParent, { title = "Quests", saved = { db, "profile.quests" } })
+	ns.quests:SetSections(QUESTS)
+	ns.quests:Hide()
 	ns.gallery = { window = win, tabs = tabs, theme = pick }
 	-- /fkgallery toggles; /fkgallery theme <name> [page] shows a theme and page (used by previews and FKDev runs)
 	FK:Slash({ "/fkgallery" }, function(msg)

@@ -337,6 +337,10 @@ def cmd_live(args):
                 f"\tid = {q(qid)},", "\tlua = {"] + [f"\t\t{q(code)}," for code in snippets] + ["\t},"]
         if args.tree:
             body.append(f"\ttree = {q(args.tree)},")
+            if args.textures:
+                body.append("\ttreeTextures = true,")
+            if args.depth:
+                body.append(f"\ttreeDepth = {int(args.depth)},")
         if args.shot:
             body.append("\tshot = true,")
         body.append("}")
@@ -593,6 +597,8 @@ def main():
     p.add_argument("--lua", action="append", help="(run) Lua to run in game after the next /reload; repeatable")
     p.add_argument("--tree", help="(run) frame name to dump after the queue ran")
     p.add_argument("--shot", action="store_true", help="(run) take a screenshot after the queue ran")
+    p.add_argument("--textures", action="store_true", help="(run) the tree dump also lists textures and atlases")
+    p.add_argument("--depth", type=int, help="(run) depth of the tree dump (default 12)")
     p.add_argument("-v", "--verbose", action="store_true", help="(results) list passing tests and error stacks")
     p.set_defaults(func=cmd_live)
 

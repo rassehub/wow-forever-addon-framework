@@ -52,7 +52,7 @@ FKDev.Test(ADDON, "every theme switches without errors and keeps the window on s
 	local before = FK.Theme.name
 	for _, name in ipairs(FK.Theme:Names()) do
 		FK.Theme:Set(name)
-		for _, id in ipairs({ "controls", "choices", "rows", "collections", "journal", "display" }) do g.tabs:Select(id) end
+		for _, id in ipairs({ "controls", "choices", "rows", "collections", "journal", "map", "display" }) do g.tabs:Select(id) end
 		local l, t = g.window:GetLeft(), g.window:GetTop()
 		assert(l and t and l >= 0 and t <= UIParent:GetTop() + 1, name .. ": window off screen")
 	end
@@ -75,6 +75,17 @@ FKDev.Test(ADDON, "client APIs the feature modules rely on exist", function(asse
 	for _, font in ipairs({ "GameFontNormal", "GameFontHighlight", "GameFontHighlightSmall", "GameFontNormalLarge" }) do
 		assert(_G[font] and _G[font].GetFont, "font object " .. font)
 	end
+end)
+
+FKDev.Test(ADDON, "client art and APIs used by the layout kits exist", function(assert)
+	for i = 1, 12 do
+		local path = ("Interface\\WorldMap\\Azeroth\\Azeroth%d"):format(i)
+		assert(GetFileIDFromPath(path) ~= nil, "world map tile " .. path)
+	end
+	assert(C_Map.GetAreaInfo and C_Map.GetAreaInfo(12) ~= nil, "C_Map.GetAreaInfo(12) = " .. tostring(C_Map.GetAreaInfo and C_Map.GetAreaInfo(12)))
+	assert(type(Minimap.SetMaskTexture) == "function", "Minimap:SetMaskTexture")
+	assert(type(Minimap.SetZoom) == "function" and type(Minimap.GetZoomLevels) == "function", "Minimap zoom API")
+	assert(UIParent.SetHyperlinksEnabled ~= nil, "Frame:SetHyperlinksEnabled")
 end)
 
 FKDev.Test(ADDON, "the minimap button sits on the minimap edge", function(assert)

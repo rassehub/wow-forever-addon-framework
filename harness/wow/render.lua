@@ -32,6 +32,7 @@ local ART = {
 	{ "ui%-optionsbutton", "", "<span>&#9881;</span>" },
 	{ "ui%-searchbox%-icon", "", "<span>&#9906;</span>" },
 	{ "sizegrabber", "background:linear-gradient(135deg,#0000 50%,#999 50%,#999 60%,#0000 60%,#0000 70%,#999 70%,#999 80%,#0000 80%)" },
+	{ "interface\\worldmap\\", "background:radial-gradient(ellipse at 45% 55%,#6e8a4e 0%,#5d7a45 35%,#3f6a7a 62%,#2c4f63 100%)" },
 	{ "questbg", "background:linear-gradient(#e8d6ab,#d2bc8a)" },
 	{ "parchment", "background:linear-gradient(#e8d6ab,#d2bc8a)" },
 	{ "interface\\icons\\", "background:repeating-linear-gradient(45deg,#555,#555 3px,#3d3d3d 3px,#3d3d3d 6px);border:1px solid #111" },

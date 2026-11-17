@@ -306,3 +306,202 @@ FK.Define("Tracker", {
 	end
 	self:SetLocked(opts.locked)
 end)
+
+---@widget SectionTracker  Quest-tracker style frame: collapsible sections (header with arrow, icon, title, counter) of objective lines (bullet or tick, text, value, thin progress bar). Movable by its title, lockable, position saved, collapsed state remembered. opts: title, width (default 250), saved = { db, "profile.tracker" }, locked, background (default true), maxHeight (rows beyond it are cut with "+N more"). SetSections({ { id, title, icon (texture or icon-set name), color, collapsed, onClick(section, button), lines = { { text, value, done, progress = 0..1, color, onClick(line, button) } } } }). Methods: SetLocked, ResetPosition, Toggle(id).
+FK.Define("SectionTracker", {
+	SetLocked = function(self, locked)
+		self.locked = locked and true or false
+		self.head:EnableMouse(not self.locked)
+	end,
+	ResetPosition = function(self)
+		self:ClearAllPoints()
+		self:SetPoint("RIGHT", UIParent, "RIGHT", -60, 60)
+		self:Store()
+	end,
+	Store = function(self)
+		local saved = self.opts.saved
+		if not saved then return end
+		local point, _, relPoint, x, y = self:GetPoint(1)
+		local old = saved[1]:Get(saved[2])
+		saved[1]:Set(saved[2], { point = point, relPoint = relPoint, x = x, y = y, collapsed = type(old) == "table" and old.collapsed or nil })
+	end,
+	Restore = function(self)
+		local saved = self.opts.saved
+		local s = saved and saved[1]:Get(saved[2])
+		if type(s) ~= "table" then return end
+		self.collapsed = s.collapsed and FK.Copy(s.collapsed) or self.collapsed
+		if not s.point then return end
+		self:ClearAllPoints()
+		self:SetPoint(s.point, UIParent, s.relPoint, s.x, s.y)
+	end,
+	SetSections = function(self, sections)
+		self.sections = sections or {}
+		for _, sec in ipairs(self.sections) do
+			if sec.id ~= nil and self.collapsed[sec.id] == nil and sec.collapsed then self.collapsed[sec.id] = true end
+		end
+		self:Refresh()
+	end,
+	Toggle = function(self, id)
+		self.collapsed[id] = not self.collapsed[id] or nil
+		local saved = self.opts.saved
+		if saved then
+			local s = FK.Copy(saved[1]:Get(saved[2]) or {})
+			s.collapsed = next(self.collapsed) and FK.Copy(self.collapsed) or nil
+			saved[1]:Set(saved[2], s)
+		end
+		self:Refresh()
+	end,
+	Row = function(self, i)
+		local row = self.rows[i]
+		if row then return row end
+		row = CreateFrame("Button", nil, self)
+		row:RegisterForClicks("AnyUp")
+		row.arrow = Theme.Icon(row, "arrowRight", 10)
+		row.icon = row:CreateTexture(nil, "ARTWORK")
+		row.icon:SetSize(14, 14)
+		row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+		row.text:SetJustifyH("LEFT")
+		row.text:SetWordWrap(false)
+		row.value = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+		row.value:SetPoint("RIGHT", -2, 0)
+		row.value:SetJustifyH("RIGHT")
+		row.text:SetPoint("RIGHT", row.value, "LEFT", -6, 0)
+		row.bar = row:CreateTexture(nil, "ARTWORK")
+		row.bar:SetHeight(2)
+		row.barBg = row:CreateTexture(nil, "BORDER")
+		row.barBg:SetHeight(2)
+		row.hl = row:CreateTexture(nil, "HIGHLIGHT")
+		row.hl:SetAllPoints()
+		row:SetScript("OnClick", function(r, button)
+			local item = r.item
+			if not item then return end
+			if r.isHeader then
+				if item.onClick and button == "RightButton" then item.onClick(item, button) else self:Toggle(item.id) end
+			elseif item.onClick then
+				item.onClick(item, button)
+			end
+		end)
+		self.rows[i] = row
+		return row
+	end,
+	Refresh = function(self)
+		local T = Theme.current
+		local y = self.opts.title and 22 or 4
+		local n, maxH = 0, self.opts.maxHeight
+		local hidden = 0
+		for _, r in ipairs(self.rows) do r:Hide() end
+		local function add(item, isHeader, depth)
+			if maxH and y + 18 > maxH then hidden = hidden + 1 return end
+			n = n + 1
+			local row = self:Row(n)
+			row.item, row.isHeader = item, isHeader
+			row:ClearAllPoints()
+			row:SetPoint("TOPLEFT", 6, -y)
+			row:SetPoint("RIGHT", -6, 0)
+			local h = isHeader and 18 or (item.progress and 18 or 15)
+			row:SetHeight(h)
+			Theme.Texture(row.hl, T.surface.row.hover)
+			local x = 0
+			row.arrow:SetShown(isHeader)
+			if isHeader then
+				row.arrow:ClearAllPoints()
+				row.arrow:SetPoint("LEFT", 0, 0)
+				row.arrow:SetIcon(self.collapsed[item.id] and "arrowRight" or "arrowDown")
+				x = 14
+			end
+			local icon = isHeader and item.icon or (not isHeader and (item.done and "check" or nil))
+			row.icon:SetShown(icon ~= nil or not isHeader)
+			row.icon:ClearAllPoints()
+			if icon then
+				local named = type(icon) == "string" and FK.mediaIcons[icon]
+				row.icon:SetTexture(named and FK.Media("Icons/" .. icon) or icon)
+				row.icon:SetSize(isHeader and 14 or 10, isHeader and 14 or 10)
+				if named then row.icon:SetVertexColor(Theme.Color(item.done and "good" or "heading")) else row.icon:SetVertexColor(1, 1, 1) end
+			elseif not isHeader then
+				row.icon:SetTexture(FK.Media("Frames/pill"))
+				row.icon:SetSize(4, 4)
+				row.icon:SetVertexColor(Theme.Color("dim"))
+			end
+			row.icon:SetPoint(isHeader and "LEFT" or "TOPLEFT", x + (isHeader and 0 or 6), isHeader and 0 or -4)
+			x = x + (isHeader and 18 or 18)
+			row.text:ClearAllPoints()
+			row.text:SetPoint(isHeader and "LEFT" or "TOPLEFT", x, isHeader and 0 or -1)
+			row.text:SetPoint("RIGHT", row.value, "LEFT", -6, 0)
+			Theme.Font(row.text, isHeader and "heading" or "small", isHeader and "heading" or (item.done and "dim" or nil))
+			Theme.Font(row.value, "small", item.done and "good" or "dim")
+			local c = item.color
+			if type(c) == "table" then row.text:SetTextColor(c[1], c[2], c[3]) end
+			row.text:SetText(item.text or item.title or "")
+			local value = item.value
+			if isHeader and value == nil and item.lines then
+				local done = 0
+				for _, l in ipairs(item.lines) do if l.done then done = done + 1 end end
+				value = ("%d/%d"):format(done, #item.lines)
+			end
+			row.value:SetText(value or "")
+			local p = not isHeader and item.progress
+			row.bar:SetShown(p and true or false)
+			row.barBg:SetShown(p and true or false)
+			if p then
+				row.barBg:ClearAllPoints()
+				row.barBg:SetPoint("BOTTOMLEFT", x, 1)
+				row.barBg:SetPoint("BOTTOMRIGHT", -2, 1)
+				Theme.Texture(row.barBg, T.surface.barBackground)
+				row.bar:ClearAllPoints()
+				row.bar:SetPoint("BOTTOMLEFT", row.barBg, "BOTTOMLEFT")
+				local w = math.max((self:GetWidth() - 12 - x - 2) * math.min(math.max(p, 0), 1), 0.01)
+				row.bar:SetWidth(w)
+				row.bar:SetColorTexture(Theme.Color(item.done and "good" or "accent"))
+			end
+			row:Show()
+			y = y + h + (isHeader and 2 or 1)
+		end
+		for _, sec in ipairs(self.sections or {}) do
+			add(sec, true, 0)
+			if not self.collapsed[sec.id] then
+				for _, line in ipairs(sec.lines or {}) do add(line, false, 1) end
+			end
+			y = y + 4
+		end
+		if hidden > 0 then
+			add({ text = ("+%d more"):format(hidden), color = { Theme.Color("dim") } }, false, 1)
+		end
+		self:SetHeight(math.max(y + 2, 26))
+		Theme.Paint(self, self.opts.background ~= false and T.surface.panel or nil, Theme.opacity)
+	end,
+	Restyle = function(self)
+		if self.title then Theme.Font(self.title, "title") end
+		self:Refresh()
+	end,
+}, function(self, opts)
+	self.sections, self.rows, self.collapsed = {}, {}, {}
+	self:SetParent(UIParent)
+	self:SetWidth(opts.width or 250)
+	self:SetClampedToScreen(true)
+	self:SetMovable(true)
+	if self:GetNumPoints() == 0 then self:SetPoint("RIGHT", UIParent, "RIGHT", -60, 60) end
+	self.head = CreateFrame("Frame", nil, self)
+	self.head:SetPoint("TOPLEFT")
+	self.head:SetPoint("TOPRIGHT")
+	self.head:SetHeight(20)
+	self.head:EnableMouse(true)
+	self.head:RegisterForDrag("LeftButton")
+	self.head:SetScript("OnDragStart", function() if not self.locked then self:StartMoving() end end)
+	self.head:SetScript("OnDragStop", function()
+		self:StopMovingOrSizing()
+		self:Store()
+	end)
+	if opts.title then
+		self.title = self:Text("title", nil, self.head)
+		self.title:SetPoint("LEFT", 8, -1)
+		self.title:SetText(opts.title)
+	end
+	if opts.saved then
+		FK:OnLoad(function()
+			self:Restore()
+			self:Refresh()
+			opts.saved[1]:OnChange("profile", function() self:Restore() self:Refresh() end)
+		end)
+	end
+	self:SetLocked(opts.locked)
+end)

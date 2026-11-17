@@ -28,6 +28,7 @@
 	<Script file="Widgets\Nav.lua"/>
 	<Script file="Widgets\Display.lua"/>
 	<Script file="Widgets\Journal.lua"/>
+	<Script file="Widgets\Map.lua"/>
 	<Script file="Widgets\Options.lua"/>
 	<Script file="Features\Secret.lua"/>
 	<Script file="Features\Combat.lua"/>

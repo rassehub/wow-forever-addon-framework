@@ -119,3 +119,87 @@ test("journal: search filters the tree and keeps parents", function()
 	eq(j:GetSelected().value, "mc", "a filtered row selects the real node")
 	eq(H.LeakedGlobals("KitTest"), {})
 end)
+
+local function mapKit(theme)
+	local FK, win = kit(theme, 640, 480)
+	local clicks = {}
+	local map = FK.MapCanvas(win.content, { points = { { "TOPLEFT" }, { "BOTTOMRIGHT" } }, contentWidth = 1000, contentHeight = 500,
+		tiles = { { texture = "media:Frames/soft", x = 0, y = 0, w = 500, h = 500 }, { texture = "media:Frames/metal", x = 500, y = 0, w = 500, h = 500 } },
+		onClick = function(x, y, button) clicks[#clicks + 1] = { x, y, button } end })
+	H.Advance(0)
+	return FK, win, map, clicks
+end
+
+test("map canvas: fits, zooms around a point, pans by dragging, clamps to the content", function()
+	local FK, win, map, clicks = mapKit("modern")
+	local s1 = map:Scale()
+	near(s1, map:GetWidth() / 1000, 0.001, "zoom 1 fits the width")
+	-- the point under a screen spot stays there when zooming
+	map:SetZoom(2, 0.25, 0.5)
+	local cl, ct = map.canvas:GetLeft(), map.canvas:GetTop()
+	local sx = (0.25 * 1000 - map.panX) * map:Scale()
+	near(sx, (0.25 * 1000) * s1, 0.6, "x of the zoom point unchanged on screen")
+	eq(map:GetZoom(), 2)
+	-- drag pans the opposite way of the mouse
+	local px = map.panX
+	H.Drag(map, -100, 0)
+	ok(map.panX > px, "dragging left moves the view right: " .. px .. " -> " .. map.panX)
+	eq(#clicks, 0, "a drag is not a click")
+	-- clamped: cannot pan past the edge
+	map:CenterOn(1, 1)
+	local s = map:Scale()
+	near(map.panX + map:GetWidth() / s, 1000, 0.6, "right edge")
+	eq(H.LayoutIssues(win), {})
+end)
+
+test("map canvas: click reports content coordinates; pins keep their size and follow", function()
+	local FK, win, map, clicks = mapKit("midnight")
+	H.Click(map)
+	eq(#clicks, 1)
+	near(clicks[1][1], 0.5, 0.01) near(clicks[1][2], 0.5, 0.06)
+	local tipped
+	local pin = map:AddPin(0.6, 0.5, { icon = "skull", size = 18, tooltip = "Boss", onClick = function() tipped = true end })
+	H.Advance(0)
+	local w1 = pin:GetWidth()
+	local x1 = pin:GetCenter()
+	map:SetZoom(3, 0.5, 0.5)
+	eq(pin:GetWidth(), w1, "pins do not scale")
+	ok(pin:GetCenter() > x1, "a pin right of the zoom point moves right")
+	H.Click(pin)
+	ok(tipped)
+	H.Hover(pin)
+	eq(H.TooltipLines(), { "Boss" })
+	pin:Remove()
+	ok(not pin:IsShown())
+	H.Wheel(map, 1)
+	near(map:GetZoom(), 3.75, 0.01)
+	eq(H.LeakedGlobals("KitTest"), {})
+end)
+
+local QUESTS = {
+	{ id = "q1", title = "Wolves Across the Border", icon = "quest", lines = {
+		{ text = "Tough Wolf Meat", value = "6/8", progress = 0.75 },
+		{ text = "Talk to Eagan Peltskinner", done = true },
+	} },
+	{ id = "q2", title = "A Threat Within", icon = "quest-turnin", lines = { { text = "Report to Marshal McBride", done = true } } },
+}
+
+for _, theme in ipairs({ "pixel", "vanilla", "glass", "parchment", "modern", "midnight" }) do
+	test(theme .. ": section tracker shows sections, counts, collapses and remembers", function()
+		local FK = H.Start(KIT).FK
+		FK.Theme:Set(theme)
+		local db = FK:NewDB("KitTestDB", { profile = { tracker = {} } })
+		local t = FK.SectionTracker(UIParent, { title = "Quests", saved = { db, "profile.tracker" } })
+		t:SetSections(QUESTS)
+		H.Advance(0)
+		ok(H.Find(t, "Wolves Across the Border"))
+		ok(H.Find(t, "1/2"), "header counter from done lines")
+		ok(H.Find(t, "Tough Wolf Meat"))
+		local h1 = t:GetHeight()
+		H.Click(H.Find(t, "Wolves Across the Border"):GetParent())
+		ok(not H.Find(t, "Tough Wolf Meat"), "collapsed")
+		ok(t:GetHeight() < h1)
+		eq(db.profile.tracker.collapsed, { q1 = true })
+		eq(H.LayoutIssues(t), {})
+	end)
+end
