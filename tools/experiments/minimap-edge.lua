@@ -5,7 +5,7 @@ FKDev.Note("mask"," MinimapMask id", tostring(GetFileIDFromPath("Textures\\Minim
 FKDev.Steps({
 	{ 0, function() G("theme modern minimap") G("") G("minimap round thin 260 260 center") end },
 	{ 2, function() Screenshot() end },  -- 1 round 260 in the middle, thin border: edge must be sharp
-	{ 1, function() G("minimap reset") end },
+	{ 1, function() G("minimap reset") end },  -- map must stay visible
 	{ 2, function() Screenshot() end },  -- 2 reset: must look like the untouched client minimap
 })
 return "edge experiment started"

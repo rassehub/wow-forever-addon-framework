@@ -262,7 +262,7 @@ test("minimap skin: square with a border, hidden pieces, wheel zoom, button draw
 	ok(GameTimeFrame:IsShown(), "pieces not listed any more are shown again")
 	eq(a:GetParent(), d.flyout)
 	FK.MinimapSkin.Reset()
-	eq(Minimap.mask, "Textures\\MinimapMask", "reset gives back the client's own mask")
+	ok(Minimap.mask:find("Masks\\circle.png", 1, true), "reset: a hard round edge like the client's own")
 	eq(a:GetParent(), Minimap)
 	eq(select(4, a:GetPoint(1)), -70, "buttons go back where they were")
 	ok(MinimapCompassTexture:IsShown())

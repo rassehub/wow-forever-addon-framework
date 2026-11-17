@@ -9,7 +9,6 @@ local OWN = {} -- frames this module puts on the minimap (never culled)
 
 -- ours: hard edge at any size (the client's CircleMaskScalable fades over several pixels, seen in game)
 local ROUND_MASK = FK.Media("Masks/circle")
-local DEFAULT_MASK = "Textures\\MinimapMask" -- the client's own (the client has no Minimap:GetMaskTexture)
 local SQUARE_MASK = "Interface\\Buttons\\WHITE8X8"
 local PIECES = {
 	-- the classic ring, and the underlay the client adds while the map rotates (seen in game)
@@ -496,7 +495,9 @@ end
 -- Back to the client's own minimap. internal: between two Apply calls (keeps the options).
 function Skin.Reset(internal)
 	local orig = Skin.original
-	if orig then Minimap:SetMaskTexture(DEFAULT_MASK) end
+	-- the client's default mask cannot be named (no GetMaskTexture, Textures\\MinimapMask is not a file);
+	-- our hard circle looks the same, the client's CircleMaskScalable is visibly soft
+	if orig then Minimap:SetMaskTexture(ROUND_MASK) end
 	GetMinimapShape = nil
 	if Skin.border then Skin.border:Hide() end
 	if Skin.ring then Skin.ring:Hide() end
