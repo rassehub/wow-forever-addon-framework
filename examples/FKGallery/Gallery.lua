@@ -254,7 +254,7 @@ FK:OnLogin(function()
 		if shape then
 			-- /fkgallery minimap <shape> <border> [width height] [rotate] [center]
 			local w, h = msg:match("(%d+)%s+(%d+)")
-			return FK.MinimapSkin.Apply({ shape = shape, border = border ~= "" and border or "metal", drawer = true, hide = { "ring" },
+			return FK.MinimapSkin.Apply({ shape = shape, border = border ~= "" and border or "metal", drawer = true,
 				width = tonumber(w), height = tonumber(h), rotate = msg:find("rotate") and true or false,
 				position = msg:find("center") and { point = "CENTER", relPoint = "CENTER", x = 0, y = -120 } or nil })
 		end

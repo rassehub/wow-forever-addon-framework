@@ -136,6 +136,7 @@ local function buildHandles(o)
 		h.label:SetPoint("CENTER")
 		h:SetScript("OnDragStart", function()
 			Minimap:SetMovable(true)
+			Minimap:SetClampedToScreen(true) -- the client keeps the square on screen while moving
 			Minimap:StartMoving()
 		end)
 		h:SetScript("OnDragStop", function()
@@ -189,6 +190,7 @@ local function buildHandles(o)
 				Skin.Shape(o2)
 				Minimap:ClearAllPoints()
 				Minimap:SetPoint("CENTER", UIParent, "BOTTOMLEFT", o2.position.x, o2.position.y)
+				Skin.KeepOnScreen()
 			end)
 			g:SetScript("OnDragStop", function()
 				g.sizing = nil
@@ -212,6 +214,25 @@ end
 function Skin.Report()
 	local o = Skin.options
 	if o and o.onLayout then o.onLayout({ position = o.position, width = o.width, height = o.height }) end
+end
+
+-- Keeps the whole square map on screen. The client always renders the minimap as a square; when
+-- part of that square is off screen it squeezes the map into what is left while our border stays
+-- (seen in game, step 14). A rectangle is a band of a bigger square, so its edges cannot reach the
+-- screen edge closer than the hidden part of the square.
+function Skin.KeepOnScreen()
+	local l, r, t, b = Minimap:GetLeft(), Minimap:GetRight(), Minimap:GetTop(), Minimap:GetBottom()
+	if not l then return end
+	local k = Minimap:GetEffectiveScale() / UIParent:GetEffectiveScale()
+	local W, H = UIParent:GetWidth(), UIParent:GetHeight()
+	local dx = math.max(0, -l * k) - math.max(0, r * k - W)
+	local dy = math.max(0, -b * k) - math.max(0, t * k - H)
+	if dx == 0 and dy == 0 then return end
+	local point, rel, relPoint, x, y = Minimap:GetPoint(1)
+	Minimap:ClearAllPoints()
+	Minimap:SetPoint(point, rel, relPoint, x + dx / k, y + dy / k)
+	local o = Skin.options
+	if o and o.position then o.position.x, o.position.y = x + dx / k, y + dy / k end
 end
 
 -- Size, mask and border for the current shape (also used live while resizing).
@@ -319,6 +340,7 @@ function Skin.Apply(o)
 	if o.position then
 		local p = o.position
 		Minimap:SetPoint(p.point or "CENTER", UIParent, p.relPoint or p.point or "CENTER", p.x or 0, p.y or 0)
+		Skin.KeepOnScreen()
 	else
 		for _, p in ipairs(Skin.original.points) do Minimap:SetPoint(unpack(p)) end
 	end

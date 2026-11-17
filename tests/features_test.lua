@@ -353,3 +353,11 @@ test("minimap skin: a round map rotates and keeps the client's ring, scaled with
 	near(MinimapBackdrop:GetWidth(), w0, 0.01)
 	eq(C_CVar.GetCVar("rotateMinimap"), "0")
 end)
+
+test("minimap skin: the whole square stays on screen, so the client never squeezes the map", function()
+	local FK = start()
+	FK.MinimapSkin.Apply({ shape = "rect", width = 460, height = 230, position = { point = "TOP", relPoint = "TOP", x = 0, y = 60 } })
+	near(Minimap:GetTop(), UIParent:GetTop(), 0.5, "pushed down until the square's top is on screen")
+	local vtop = FK.MinimapSkin.view:GetTop()
+	near(UIParent:GetTop() - vtop, (460 - 460 * 16 / 32) / 2, 1, "the band sits the hidden half-height below the edge")
+end)
