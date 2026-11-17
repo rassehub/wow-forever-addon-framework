@@ -203,3 +203,24 @@ for _, theme in ipairs({ "pixel", "vanilla", "glass", "parchment", "modern", "mi
 		eq(H.LayoutIssues(t), {})
 	end)
 end
+
+test("rich text: blocks never overlap after a theme or width change (seen in game, step 14)", function()
+	local FK, win = kit("modern", 520, 460)
+	local rt = FK.RichText(win.content, { points = { { "TOPLEFT" }, { "TOPRIGHT" } }, text = PAGE })
+	H.Advance(0)
+	FK.Theme:Set("midnight")
+	win:SetWidth(380)
+	H.Advance(0.1)
+	local regions = {}
+	for _, r in ipairs({ rt:GetRegions() }) do
+		if r:IsShown() and r:GetObjectType() == "FontString" and (r:GetText() or "") ~= "" then regions[#regions + 1] = r end
+	end
+	table.sort(regions, function(a, b) return a:GetTop() > b:GetTop() end)
+	for i = 2, #regions do
+		ok(regions[i]:GetTop() <= regions[i - 1]:GetBottom() + 0.5,
+			("%q overlaps %q"):format(regions[i]:GetText(), regions[i - 1]:GetText()))
+	end
+	ok(rt:GetBottom() <= regions[#regions]:GetBottom() + 0.5, "the widget contains all of its text")
+	near(rt:GetBottom(), rt.lastRegion:GetBottom(), 0.5, "and ends at its last block")
+	eq(H.LayoutIssues(win), {})
+end)

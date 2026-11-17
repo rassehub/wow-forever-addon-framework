@@ -115,57 +115,67 @@ FK.Define("RichText", {
 		end
 		local lineH = 12
 		local gap = self.opts.gap or m.gap
-		local function place(region, indent, height)
-			region:SetPoint("TOPLEFT", indent or 0, -y)
+		-- Each block hangs from the bottom of the one above, so the client stacks them by the real
+		-- text heights (font metrics and wrapping can differ from any measurement made earlier).
+		-- `y` only estimates the total height; FitHeight corrects it from the real bottom edge.
+		local prev, prevIndent
+		local function place(region, indent, height, before)
+			indent, before = indent or 0, before or 0
+			if prev then
+				region:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", indent - prevIndent, -(gap + before))
+				y = y + gap + before
+			else
+				region:SetPoint("TOPLEFT", indent, -before)
+				y = y + before
+			end
 			if region.SetWordWrap then region:SetPoint("RIGHT", self, "RIGHT") end
-			y = y + (height or region:GetStringHeight()) + gap
+			prev, prevIndent = region, indent
+			y = y + (height or region:GetStringHeight())
 		end
 		for i, b in ipairs(FK.ParseRichText(self.markup)) do
 			if b.kind == "h1" then
 				local fs = text("large", "heading")
 				fs:SetText(inline(b.text, 16))
-				if i > 1 then y = y + gap end
-				place(fs)
+				place(fs, 0, nil, i > 1 and gap or 0)
 			elseif b.kind == "h2" then
 				local fs = text("heading", "heading")
 				fs:SetText(inline(b.text, lineH))
-				if i > 1 then y = y + gap / 2 end
-				place(fs, 0, fs:GetStringHeight() + 3)
+				place(fs, 0, nil, i > 1 and gap / 2 or 0)
 				local rule = tex()
 				rule:SetColorTexture(Theme.Color("divider"))
-				rule:SetPoint("TOPLEFT", 0, -(y - gap - 1))
+				rule:SetPoint("TOPLEFT", fs, "BOTTOMLEFT", 0, -3)
 				rule:SetPoint("RIGHT", self, "RIGHT")
 				rule:SetHeight(FK.Pixel(1))
+				prev, y = rule, y + 3 + FK.Pixel(1)
 			elseif b.kind == "p" then
 				local fs = text("normal")
 				fs:SetText(inline(b.text, lineH))
 				place(fs)
 			elseif b.kind == "li" then
 				local indent = 14 + b.level * 14
+				local fs = text("normal")
+				fs:SetText(inline(b.text, lineH))
+				place(fs, indent)
 				local dot = tex()
 				dot:SetTexture(FK.Media("Frames/pill"))
 				dot:SetVertexColor(Theme.Color("accent"))
 				dot:SetSize(5, 5)
-				dot:SetPoint("TOPLEFT", indent - 9, -(y + 4))
-				local fs = text("normal")
-				fs:SetText(inline(b.text, lineH))
-				place(fs, indent)
+				dot:SetPoint("TOPLEFT", fs, "TOPLEFT", -9, -4)
 			elseif b.kind == "quote" then
-				local bar = tex()
-				bar:SetColorTexture(Theme.Color("accent"))
 				local fs = text("normal", "dim")
 				fs:SetText(inline(b.text, lineH))
-				local top = y
 				place(fs, 12)
-				bar:SetPoint("TOPLEFT", 2, -top)
-				bar:SetSize(2, math.max(fs:GetStringHeight(), lineH))
+				local bar = tex()
+				bar:SetColorTexture(Theme.Color("accent"))
+				bar:SetPoint("TOPLEFT", fs, "TOPLEFT", -10, 0)
+				bar:SetPoint("BOTTOMLEFT", fs, "BOTTOMLEFT", -10, 0)
+				bar:SetWidth(2)
 			elseif b.kind == "hr" then
 				local rule = tex()
 				rule:SetColorTexture(Theme.Color("divider"))
-				rule:SetPoint("TOPLEFT", 0, -(y + 3))
+				place(rule, 0, FK.Pixel(1), 3)
 				rule:SetPoint("RIGHT", self, "RIGHT")
 				rule:SetHeight(FK.Pixel(1))
-				y = y + 7 + gap
 			elseif b.kind == "img" then
 				local t = tex()
 				t:SetTexture(Theme.Resolve(b.path))
@@ -175,8 +185,24 @@ FK.Define("RichText", {
 				place(t, 0, b.height)
 			end
 		end
-		self:SetHeight(math.max(y - gap, 1))
+		self.lastRegion = prev
+		self:SetHeight(math.max(y, 1))
 		self:Changed()
+		-- next frame, when the client has laid the text out: the real height
+		if not self.fitPending then
+			self.fitPending = true
+			C_Timer.After(0, function() self.fitPending = nil self:FitHeight() end)
+		end
+	end,
+	FitHeight = function(self)
+		local last, top = self.lastRegion, self:GetTop()
+		local bottom = last and last:IsShown() and last:GetBottom()
+		if not (top and bottom) then return end
+		local h = math.max(top - bottom, 1)
+		if math.abs(h - self:GetHeight()) > 0.5 then
+			self:SetHeight(h)
+			self:Changed()
+		end
 	end,
 }, function(self, opts)
 	self.parts, self.texts, self.textures = {}, {}, {}

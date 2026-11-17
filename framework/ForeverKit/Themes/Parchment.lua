@@ -2,17 +2,18 @@ local _, ns = ...
 local FK = ns.FK
 
 -- Light paper with dark brown ink, tan leather controls and red accents, like a quest log page.
--- The paper is a flat colour (no texture file to go missing); edges reuse the tooltip border.
+-- The paper is a flat colour on a solid tile (the tooltip background texture is see-through in
+-- the client, verified step 14); edges reuse the tooltip border.
 
 local INK = { 0.24, 0.15, 0.07 }
 local RED = { 0.55, 0.12, 0.05 }
 local BROWN = { 0.42, 0.28, 0.13, 1 }
 local EDGE = {
-	bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+	bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
 	tile = true, tileSize = 16, edgeSize = 16, insets = { left = 4, right = 4, top = 4, bottom = 4 },
 }
 local THIN = {
-	bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+	bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
 	tile = true, tileSize = 16, edgeSize = 10, insets = { left = 2, right = 2, top = 2, bottom = 2 },
 }
 local PAPER = { 0.87, 0.79, 0.62, 1 }

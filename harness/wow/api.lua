@@ -259,9 +259,34 @@ function H.Install()
 	ui:SetScale(tonumber(fx.cvars.uiScale) or 1)
 	ui:SetAllPoints(nil)
 	H.CreateFrame("Frame", "WorldFrame"):SetAllPoints(nil)
-	local mm = H.CreateFrame("Frame", "Minimap", ui)
+	-- the minimap as the 1.60 client builds it (dumped in game, step 14): a cluster with a header
+	-- button, tracking, calendar and the addon compartment, the round ring texture on a backdrop
+	local cluster = H.CreateFrame("Frame", "MinimapCluster", ui)
+	cluster:SetSize(200, 210)
+	cluster:SetPoint("TOPRIGHT", 0, 0)
+	local mm = H.CreateFrame("Frame", "Minimap", cluster)
 	mm:SetSize(140, 140)
-	mm:SetPoint("TOPRIGHT", -20, -30)
+	mm:SetPoint("TOPRIGHT", ui, "TOPRIGHT", -20, -30)
+	mm.zoom, mm.mask = 0, "Interface\\CharacterFrame\\TempPortraitAlphaMask"
+	function mm:SetMaskTexture(path) self.mask = path end
+	function mm:GetMaskTexture() return self.mask end
+	function mm:SetZoom(z) self.zoom = math.max(0, math.min(5, z)) end
+	function mm:GetZoom() return self.zoom end
+	function mm:GetZoomLevels() return 6 end
+	local backdrop = H.CreateFrame("Frame", "MinimapBackdrop", mm)
+	backdrop:SetAllPoints()
+	local ring = backdrop:CreateTexture("MinimapCompassTexture", "OVERLAY")
+	ring:SetAllPoints()
+	ring:SetAtlas("UI-HUD-Minimap-Frame")
+	cluster.ZoneTextButton = H.CreateFrame("Button", nil, cluster)
+	cluster.ZoneTextButton:SetSize(150, 20)
+	cluster.ZoneTextButton:SetPoint("TOP", cluster, "TOP", 0, -2)
+	cluster.Tracking = H.CreateFrame("Frame", nil, cluster)
+	cluster.Tracking:SetSize(20, 20)
+	cluster.Tracking:SetPoint("RIGHT", cluster.ZoneTextButton, "LEFT", -2, 0)
+	local cal = H.CreateFrame("Button", "GameTimeFrame", cluster)
+	cal:SetSize(22, 22)
+	cal:SetPoint("LEFT", cluster.ZoneTextButton, "RIGHT", 2, 0)
 	G.GetMinimapShape = nil
 	local tip = H.CreateFrame("GameTooltip", "GameTooltip", ui)
 	tip:SetFrameStrata("TOOLTIP")

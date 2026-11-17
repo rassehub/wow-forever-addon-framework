@@ -375,6 +375,11 @@ Icons on the world map. local pin = FK.MapPins.Add(mapID, x, y, { icon, size (de
 FK.MinimapButton({ icon, title, tooltip = text | {lines} | function(tooltip), onClick(button, mouseButton), saved = { db, "profile.minimap" } }) -> round button on the minimap edge; drag to move it around the edge; saved stores { angle, hide }. button:SetHidden(bool). FK.Compartment({ text, icon, onClick(mouseButton), tooltip }) adds the addon to the minimap's addon compartment list (also possible through the TOC's ## AddonCompartmentFunc).  
 <sub>[framework/ForeverKit/Features/Minimap.lua:4](../framework/ForeverKit/Features/Minimap.lua#L4)</sub>
 
+### MinimapSkin
+
+Re-styles the game's minimap (minimap addons): FK.MinimapSkin.Apply({ shape = "square"|"round", border = "metal"|"soft"|"double"|"none", borderColor = theme colour or {r,g,b}, scale (MinimapCluster), wheelZoom (default true), hide = { "ring", "header", "tracking", "calendar", "compartment" }, drawer = true (collect other addons' minimap buttons into a flyout) }); calling it again with other options re-applies; FK.MinimapSkin.Reset() puts everything back. Nothing is saved by the module: call Apply from your settings (e.g. on login and in onChange). Square sets the GetMinimapShape() convention so button libraries place buttons on the square edge. Blizzard pieces are found by the names the 1.60 client uses (dumped in game); missing ones are skipped.  
+<sub>[framework/ForeverKit/Features/MinimapSkin.lua:5](../framework/ForeverKit/Features/MinimapSkin.lua#L5)</sub>
+
 ### Movers
 
 Unlock mode for HUD frames. FK.Movers.Add(frame, { label, saved = { db, "profile.pos.bar" } }) restores the saved position now; FK.Movers.Unlock() covers every registered frame with a labelled handle that drags it, FK.Movers.Lock() saves and hides the handles, FK.Movers.Toggle(), FK.Movers.IsUnlocked(). Not in combat (frames may be protected).  

@@ -185,6 +185,13 @@ FK:OnLogin(function()
 	ns.gallery = { window = win, tabs = tabs, theme = pick }
 	-- /fkgallery toggles; /fkgallery theme <name> [page] shows a theme and page (used by previews and FKDev runs)
 	FK:Slash({ "/fkgallery" }, function(msg)
+		-- /fkgallery dialog: the confirm dialog; /fkgallery minimap square metal | round soft | reset
+		if msg == "dialog" then return FK.Confirm("Delete this goal?", function() end) end
+		local shape, border = msg:match("^minimap%s+(%S+)%s*(%S*)")
+		if shape == "reset" then return FK.MinimapSkin.Reset() end
+		if shape then
+			return FK.MinimapSkin.Apply({ shape = shape, border = border ~= "" and border or "metal", drawer = true, hide = { "ring" } })
+		end
 		local theme, page = msg:match("^theme%s+(%S+)%s*(%S*)")
 		if not theme then return win:Toggle() end
 		if FK.Theme.themes[theme] then FK.Theme:Set(theme) end

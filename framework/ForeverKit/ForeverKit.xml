@@ -42,6 +42,7 @@
 	<Script file="Features\Keybind.lua"/>
 	<Script file="Features\Movers.lua"/>
 	<Script file="Features\MapPins.lua"/>
+	<Script file="Features\MinimapSkin.lua"/>
 	<Script file="Data\Questie.lua"/>
 	<Script file="Data\Auction.lua"/>
 </Ui>
