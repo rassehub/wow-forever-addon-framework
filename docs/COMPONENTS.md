@@ -104,32 +104,32 @@ Filled bar with centred text. opts: min, max, value, text or format (string or f
 ### Dropdown
 
 Pick one of several named options. For numbers use Slider. opts: label, items, value, placeholder, onChange(value). Methods: SetItems(items).  
-<sub>[framework/ForeverKit/Widgets/Choice.lua:249](../framework/ForeverKit/Widgets/Choice.lua#L249)</sub>
+<sub>[framework/ForeverKit/Widgets/Choice.lua:253](../framework/ForeverKit/Widgets/Choice.lua#L253)</sub>
 
 ### MultiDropdown
 
 Pick any number of named options; the list stays open while ticking. opts: label, items, value = { [itemValue] = true }, placeholder, onChange(valueSet).  
-<sub>[framework/ForeverKit/Widgets/Choice.lua:288](../framework/ForeverKit/Widgets/Choice.lua#L288)</sub>
+<sub>[framework/ForeverKit/Widgets/Choice.lua:292](../framework/ForeverKit/Widgets/Choice.lua#L292)</sub>
 
 ### Segmented
 
 Two to five named options as a row of buttons, all visible at once. opts: label, items, value, onChange(value).  
-<sub>[framework/ForeverKit/Widgets/Choice.lua:331](../framework/ForeverKit/Widgets/Choice.lua#L331)</sub>
+<sub>[framework/ForeverKit/Widgets/Choice.lua:335](../framework/ForeverKit/Widgets/Choice.lua#L335)</sub>
 
 ### RadioGroup
 
 Named options listed vertically, one selected; use when each option needs room for a longer label. opts: label, items, value, onChange(value).  
-<sub>[framework/ForeverKit/Widgets/Choice.lua:378](../framework/ForeverKit/Widgets/Choice.lua#L378)</sub>
+<sub>[framework/ForeverKit/Widgets/Choice.lua:382](../framework/ForeverKit/Widgets/Choice.lua#L382)</sub>
 
 ### ColorSwatch
 
 Colour setting: a swatch that opens the game's colour picker. opts: label, value = { r, g, b [, a] }, hasAlpha, onChange({ r, g, b [, a] }). Cancelling the picker restores the previous colour.  
-<sub>[framework/ForeverKit/Widgets/Choice.lua:437](../framework/ForeverKit/Widgets/Choice.lua#L437)</sub>
+<sub>[framework/ForeverKit/Widgets/Choice.lua:441](../framework/ForeverKit/Widgets/Choice.lua#L441)</sub>
 
 ### KeybindButton
 
 Captures a key combination ("CTRL-SHIFT-K"). Click, then press the keys; Escape cancels, right-click clears. opts: label, value, onChange(keyOrNil). The widget only records the key: bind it with FK.Keybind (Features).  
-<sub>[framework/ForeverKit/Widgets/Choice.lua:486](../framework/ForeverKit/Widgets/Choice.lua#L486)</sub>
+<sub>[framework/ForeverKit/Widgets/Choice.lua:490](../framework/ForeverKit/Widgets/Choice.lua#L490)</sub>
 
 ### TimerBar
 
@@ -377,7 +377,7 @@ FK.MinimapButton({ icon, title, tooltip = text | {lines} | function(tooltip), on
 
 ### MinimapSkin
 
-Re-styles the game's minimap (minimap addons): FK.MinimapSkin.Apply({ shape = "square"|"round", border = "metal"|"soft"|"double"|"none", borderColor = theme colour or {r,g,b}, scale (MinimapCluster), wheelZoom (default true), hide = { "ring", "header", "tracking", "calendar", "compartment" }, drawer = true (collect other addons' minimap buttons into a flyout) }); calling it again with other options re-applies; FK.MinimapSkin.Reset() puts everything back. Nothing is saved by the module: call Apply from your settings (e.g. on login and in onChange). Square sets the GetMinimapShape() convention so button libraries place buttons on the square edge. Blizzard pieces are found by the names the 1.60 client uses (dumped in game); missing ones are skipped.  
+Re-styles the game's minimap (minimap addons): FK.MinimapSkin.Apply({ shape = "square"|"round", border = "metal"|"thin"|"soft"|"double"|"none", borderColor = theme colour or {r,g,b}, scale (MinimapCluster), wheelZoom (default true), hide = { "ring", "header", "tracking", "calendar", "compartment" }, drawer = true (collect other addons' minimap buttons into a flyout list with their names) }); calling it again with other options re-applies; FK.MinimapSkin.Reset() puts everything back. Nothing is saved by the module: call Apply from your settings (e.g. on login and in onChange). Square sets the GetMinimapShape() convention so button libraries place buttons on the square edge. Blizzard pieces are found by the names the 1.60 client uses (dumped in game); missing ones are skipped.  
 <sub>[framework/ForeverKit/Features/MinimapSkin.lua:5](../framework/ForeverKit/Features/MinimapSkin.lua#L5)</sub>
 
 ### Movers

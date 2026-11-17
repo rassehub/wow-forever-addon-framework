@@ -300,6 +300,13 @@ def metal(c):
 
 
 @frame
+def thin(c):
+    """One fine rounded line with a faint dark outline: the modern thin border (white, tintable)."""
+    rrect(c, 1.5, 1.5, 61, 61, 4); c.set_line_width(2.5); c.set_source_rgba(0, 0, 0, 0.5); c.stroke()
+    rrect(c, 1.5, 1.5, 61, 61, 4); c.set_line_width(1.2); c.set_source_rgba(1, 1, 1, 1); c.stroke()
+
+
+@frame
 def soft(c):
     """Rounded hairline with a soft outer shadow (midnight)."""
     for i in range(6, 0, -1):

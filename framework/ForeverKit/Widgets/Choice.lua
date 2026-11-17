@@ -240,6 +240,10 @@ local function dropdownStyle(self)
 	local T = Theme.current
 	self:SetHeight(self.top + T.metric.control)
 	self.button:SetHeight(T.metric.control)
+	-- keep the text and arrow inside the button art's bevel (wider in vanilla)
+	local inset = T.metric.controlInset or 7
+	self.text:SetPoint("LEFT", inset, 0)
+	self.arrow:SetPoint("RIGHT", -(inset - 2), 0)
 	Theme.PaintState(self.button, T.surface.button, Theme.State(self))
 	self.arrow.colorRole = not self.enabled and "disabled" or nil
 	self.arrow:Restyle()

@@ -55,6 +55,16 @@ local QUESTS = {
 	{ id = "q3", title = "A Threat Within", icon = "quest-turnin", lines = { { text = "Report to the marshal", done = true } } },
 }
 
+-- Minimap page: every MinimapSkin option as a live control. Not saved: /reload or Reset restores.
+local skin = { shape = "round", border = "none", scale = 1, wheelZoom = true, drawer = false, hide = {} }
+local function applySkin()
+	local hide = {}
+	for name, on in pairs(skin.hide) do if on then hide[#hide + 1] = name end end
+	FK.MinimapSkin.Apply({ shape = skin.shape, border = skin.border, scale = skin.scale, wheelZoom = skin.wheelZoom,
+		drawer = skin.drawer, hide = hide, borderColor = "accent" })
+end
+local function set(key) return function(v) skin[key] = v applySkin() end end
+
 local PAGES = {
 	{ id = "controls", label = "Controls", build = page({
 		{ "Heading", text = "Text" },
@@ -142,6 +152,20 @@ local PAGES = {
 		map:AddPin(0.52, 0.38, { icon = "ore", tooltip = "Mining route" })
 		ns.map = map
 	end },
+	{ id = "minimap", label = "Minimap", build = page({
+		{ "Label", role = "small", color = "dim", text = "Changes the game's minimap live (FK.MinimapSkin). Nothing is saved: /reload or Reset puts it back." },
+		{ "Segmented", label = "Shape", items = { { value = "round", label = "Round" }, { value = "square", label = "Square" } }, value = "round", onChange = set("shape") },
+		{ "Dropdown", label = "Border", value = "none", onChange = set("border"), items = {
+			{ value = "none", label = "Game default" }, { value = "thin", label = "Thin (modern)" }, { value = "metal", label = "Metal" },
+			{ value = "soft", label = "Soft" }, { value = "double", label = "Double line" } } },
+		{ "Slider", label = "Size", min = 0.6, max = 2, step = 0.05, percent = true, value = 1, live = false, onChange = set("scale") },
+		{ "Toggle", label = "Zoom with the mouse wheel", value = true, onChange = set("wheelZoom") },
+		{ "Toggle", label = "Collect addon buttons into a drawer", value = false, onChange = set("drawer") },
+		{ "CheckList", label = "Hide", height = 130, value = {}, onChange = function(v) skin.hide = v applySkin() end, items = {
+			{ value = "ring", label = "Round ring" }, { value = "header", label = "Zone name header" }, { value = "tracking", label = "Tracking button" },
+			{ value = "calendar", label = "Calendar" }, { value = "compartment", label = "Addon compartment" } } },
+		{ "Button", text = "Reset", onClick = function() FK.MinimapSkin.Reset() end },
+	}) },
 	{ id = "display", label = "Display", build = function(p)
 		local _, refs = FK.Build(p, { "ScrollArea", points = { { "TOPLEFT" }, { "BOTTOMRIGHT" } }, gap = 8, children = {
 		{ "TimerBar", id = "timer", label = "TimerBar", duration = 30 },

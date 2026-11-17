@@ -2,7 +2,7 @@ local _, ns = ...
 local FK = ns.FK
 local Theme = FK.Theme
 
----@module MinimapSkin  Re-styles the game's minimap (minimap addons): FK.MinimapSkin.Apply({ shape = "square"|"round", border = "metal"|"soft"|"double"|"none", borderColor = theme colour or {r,g,b}, scale (MinimapCluster), wheelZoom (default true), hide = { "ring", "header", "tracking", "calendar", "compartment" }, drawer = true (collect other addons' minimap buttons into a flyout) }); calling it again with other options re-applies; FK.MinimapSkin.Reset() puts everything back. Nothing is saved by the module: call Apply from your settings (e.g. on login and in onChange). Square sets the GetMinimapShape() convention so button libraries place buttons on the square edge. Blizzard pieces are found by the names the 1.60 client uses (dumped in game); missing ones are skipped.
+---@module MinimapSkin  Re-styles the game's minimap (minimap addons): FK.MinimapSkin.Apply({ shape = "square"|"round", border = "metal"|"thin"|"soft"|"double"|"none", borderColor = theme colour or {r,g,b}, scale (MinimapCluster), wheelZoom (default true), hide = { "ring", "header", "tracking", "calendar", "compartment" }, drawer = true (collect other addons' minimap buttons into a flyout list with their names) }); calling it again with other options re-applies; FK.MinimapSkin.Reset() puts everything back. Nothing is saved by the module: call Apply from your settings (e.g. on login and in onChange). Square sets the GetMinimapShape() convention so button libraries place buttons on the square edge. Blizzard pieces are found by the names the 1.60 client uses (dumped in game); missing ones are skipped.
 local Skin = { hidden = {}, moved = {} }
 FK.MinimapSkin = Skin
 
@@ -27,6 +27,16 @@ local function hidePiece(name)
 			f:HookScript("OnShow", function(self) if Skin.hidden[self] ~= nil then self:Hide() end end)
 		end
 	end
+end
+
+-- A readable name from a button's frame name: LibDBIcon10_ForeverDungeonJournal -> "Forever Dungeon Journal".
+function Skin.ButtonName(f)
+	local name = (f:GetName() or "?"):gsub("^LibDBIcon10_", "")
+	for _, suffix in ipairs({ "MinimapButton", "MinimapIcon", "Minimap", "Button", "Icon" }) do
+		local cut = name:gsub(suffix .. "$", "")
+		if cut ~= "" and cut ~= name then name = cut break end
+	end
+	return (name:gsub("(%l)(%u)", "%1 %2"):gsub("[_%-]", " "))
 end
 
 -- Other addons' minimap buttons: LibDBIcon's and the common "...MinimapButton" naming.
@@ -61,8 +71,10 @@ local function buildDrawer(color)
 		if isAddonButton(f) then buttons[#buttons + 1] = f end
 	end
 	for _, f in ipairs(Skin.moved) do if f:GetParent() == d.flyout then buttons[#buttons + 1] = f end end
-	table.sort(buttons, function(a, b) return a:GetName() < b:GetName() end)
-	local cols, size = 4, 34
+	table.sort(buttons, function(a, b) return Skin.ButtonName(a) < Skin.ButtonName(b) end)
+	local size, width = 32, 200
+	d.labels = d.labels or {}
+	for _, l in ipairs(d.labels) do l:Hide() end
 	for i, f in ipairs(buttons) do
 		if f:GetParent() ~= d.flyout then
 			Skin.moved[#Skin.moved + 1] = f
@@ -72,9 +84,22 @@ local function buildDrawer(color)
 			f:SetParent(d.flyout)
 		end
 		f:ClearAllPoints()
-		f:SetPoint("TOPLEFT", d.flyout, "TOPLEFT", 6 + ((i - 1) % cols) * size, -6 - math.floor((i - 1) / cols) * size)
+		f:SetPoint("TOPLEFT", d.flyout, "TOPLEFT", 4, -6 - (i - 1) * size)
+		local label = d.labels[i]
+		if not label then
+			label = d.flyout:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+			label:SetJustifyH("LEFT")
+			label:SetWordWrap(false)
+			d.labels[i] = label
+		end
+		Theme.Font(label, "normal")
+		label:ClearAllPoints()
+		label:SetPoint("LEFT", d.flyout, "TOPLEFT", 4 + 34, -6 - (i - 1) * size - 16)
+		label:SetPoint("RIGHT", d.flyout, "RIGHT", -8, 0)
+		label:SetText(Skin.ButtonName(f))
+		label:Show()
 	end
-	d.flyout:SetSize(12 + math.min(#buttons, cols) * size, 12 + math.ceil(math.max(#buttons, 1) / cols) * size)
+	d.flyout:SetSize(width, 12 + math.max(#buttons, 1) * size)
 	d.flyout:ClearAllPoints()
 	d.flyout:SetPoint("TOPRIGHT", d, "BOTTOMLEFT", 0, -2)
 	d:SetShown(#buttons > 0)
@@ -102,8 +127,9 @@ function Skin.Apply(o)
 		b:ClearAllPoints()
 		b:SetPoint("TOPLEFT", -pad, pad)
 		b:SetPoint("BOTTOMRIGHT", pad, -pad)
-		local frame = o.border == "soft" and "soft" or o.border == "double" and "double" or "metal"
-		Theme.Paint(b, { nineslice = "media:Frames/" .. frame, size = square and 14 or 30, color = (frame ~= "metal") and c or nil })
+		local frame = ({ thin = "thin", soft = "soft", double = "double" })[o.border] or "metal"
+		local size = frame == "thin" and 6 or (square and 14 or 30)
+		Theme.Paint(b, { nineslice = "media:Frames/" .. frame, size = size, color = (frame ~= "metal") and c or nil })
 		b:Show()
 	end
 	for _, name in ipairs(o.hide or {}) do hidePiece(name) end

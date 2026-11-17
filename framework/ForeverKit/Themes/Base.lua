@@ -124,6 +124,7 @@ FK.Theme.Register("base", {
 		scroll = 10,     -- scroll bar width
 		tab = 24,
 		buttonPad = 12,  -- horizontal padding around button text
+		controlInset = 7, -- text inset inside dropdowns and similar controls (wider for bevelled art)
 		windowInset = { 1, 1, 1, 1 }, -- left, right, top, bottom border thickness of the window surface
 	},
 })

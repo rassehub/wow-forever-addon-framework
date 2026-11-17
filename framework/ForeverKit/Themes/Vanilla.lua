@@ -106,7 +106,7 @@ FK.Theme.Register("vanilla", {
 		minus = { texture = "Interface\\Buttons\\UI-MinusButton-Up", size = 16 },
 	},
 	metric = {
-		pad = 12, gap = 8, control = 22, title = 30, check = 24, radio = 16,
+		pad = 12, gap = 8, control = 22, title = 30, controlInset = 12, check = 24, radio = 16,
 		slider = 17, thumbWidth = 32, thumbHeight = 32, scroll = 14,
 		windowInset = { 11, 12, 12, 11 },
 	},
