@@ -329,7 +329,7 @@ def fkdev_saved():
 
 def cmd_live(args):
     if args.action == "run":
-        snippets = args.lua or []
+        snippets = (args.lua or []) + [Path(f).read_text() for f in (args.file or [])]
         qid = time.strftime("%Y%m%d-%H%M%S")
         def q(v):
             return "[==[" + v + "]==]"
@@ -353,7 +353,8 @@ def cmd_live(args):
         shots = sorted((wow_dir() / "Screenshots").glob("*"), key=lambda p: p.stat().st_mtime)
         if not shots:
             die("no screenshots yet")
-        print(shots[-1])
+        for p in shots[-(args.count or 1):]:
+            print(p)
         return
     data, path = fkdev_saved()
     sessions = data.get("sessions") or []
@@ -380,6 +381,11 @@ def cmd_live(args):
         print(f"  {'ok  ' if t.get('ok') else 'FAIL'} {t.get('addon')}: {t.get('name')}")
         for f in t.get("failures") or []:
             print("       " + str(f).replace("\n", "\n       "))
+    notes = s.get("notes") or []
+    if notes:
+        print("\nnotes:")
+        for n in notes:
+            print(f"  [{n.get('time', '')[-8:]}] {n.get('key')}: {n.get('value')}")
     run = s.get("run")
     if run:
         print(f"\nqueue {run.get('id')}:")
@@ -595,10 +601,12 @@ def main():
     p = sub.add_parser("live", help="live loop with the real client through FKDev: run | results | errors | shot")
     p.add_argument("action", choices=["run", "results", "errors", "shot"])
     p.add_argument("--lua", action="append", help="(run) Lua to run in game after the next /reload; repeatable")
+    p.add_argument("--file", action="append", help="(run) a Lua file to run in game (experiments; see tools/experiments/)")
     p.add_argument("--tree", help="(run) frame name to dump after the queue ran")
     p.add_argument("--shot", action="store_true", help="(run) take a screenshot after the queue ran")
     p.add_argument("--textures", action="store_true", help="(run) the tree dump also lists textures and atlases")
     p.add_argument("--depth", type=int, help="(run) depth of the tree dump (default 12)")
+    p.add_argument("--count", type=int, help="(shot) how many of the newest screenshots to list")
     p.add_argument("-v", "--verbose", action="store_true", help="(results) list passing tests and error stacks")
     p.set_defaults(func=cmd_live)
 

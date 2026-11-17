@@ -56,14 +56,29 @@ local QUESTS = {
 }
 
 -- Minimap page: every MinimapSkin option as a live control. Not saved: /reload or Reset restores.
-local skin = { shape = "round", border = "none", scale = 1, wheelZoom = true, drawer = false, hide = {} }
+local skin = { shape = "round", border = "none", width = 198, height = 198, scale = 1, wheelZoom = true, drawer = false, rotate = false, unlock = false, hide = {} }
+local minimapRefs
 local function applySkin()
 	local hide = {}
 	for name, on in pairs(skin.hide) do if on then hide[#hide + 1] = name end end
-	FK.MinimapSkin.Apply({ shape = skin.shape, border = skin.border, scale = skin.scale, wheelZoom = skin.wheelZoom,
-		drawer = skin.drawer, hide = hide, borderColor = "accent" })
+	FK.MinimapSkin.Apply({ shape = skin.shape, border = skin.border, width = skin.width, height = skin.height, scale = skin.scale,
+		wheelZoom = skin.wheelZoom, drawer = skin.drawer, rotate = skin.rotate, unlock = skin.unlock, position = skin.position,
+		hide = hide, borderColor = "accent",
+		onLayout = function(l)
+			skin.position, skin.width, skin.height = l.position, l.width, l.height
+			if minimapRefs then minimapRefs.width:SetValue(l.width) minimapRefs.height:SetValue(l.height) end
+		end })
 end
 local function set(key) return function(v) skin[key] = v applySkin() end end
+function ns.navigator()
+	skin.shape, skin.border, skin.width, skin.height, skin.rotate, skin.drawer = "rect", "thin", 460, 230, true, true
+	skin.hide = { header = true, ring = true }
+	skin.position = { point = "BOTTOM", relPoint = "BOTTOM", x = 0, y = 150 }
+	applySkin()
+	local r = minimapRefs
+	r.shape:SetValue("rect") r.border:SetValue("thin") r.width:SetValue(460) r.height:SetValue(230)
+	r.rotate:SetValue(true) r.drawer:SetValue(true) r.hide:SetValue(skin.hide)
+end
 
 local PAGES = {
 	{ id = "controls", label = "Controls", build = page({
@@ -154,18 +169,26 @@ local PAGES = {
 	end },
 	{ id = "minimap", label = "Minimap", build = page({
 		{ "Label", role = "small", color = "dim", text = "Changes the game's minimap live (FK.MinimapSkin). Nothing is saved: /reload or Reset puts it back." },
-		{ "Segmented", label = "Shape", items = { { value = "round", label = "Round" }, { value = "square", label = "Square" } }, value = "round", onChange = set("shape") },
-		{ "Dropdown", label = "Border", value = "none", onChange = set("border"), items = {
+		{ "Row", children = {
+			{ "Button", text = "Navigator preset", onClick = function() ns.navigator() end },
+			{ "Button", text = "Reset", onClick = function() FK.MinimapSkin.Reset() skin.position = nil end },
+		} },
+		{ "Segmented", id = "shape", label = "Shape", value = "round", onChange = set("shape"),
+			items = { { value = "round", label = "Round" }, { value = "square", label = "Square" }, { value = "rect", label = "Rectangle" } } },
+		{ "Dropdown", id = "border", label = "Border", value = "none", onChange = set("border"), items = {
 			{ value = "none", label = "Game default" }, { value = "thin", label = "Thin (modern)" }, { value = "metal", label = "Metal" },
 			{ value = "soft", label = "Soft" }, { value = "double", label = "Double line" } } },
-		{ "Slider", label = "Size", min = 0.6, max = 2, step = 0.05, percent = true, value = 1, live = false, onChange = set("scale") },
+		{ "Slider", id = "width", label = "Width", min = 100, max = 700, step = 2, value = 198, format = "%d", live = false, onChange = set("width") },
+		{ "Slider", id = "height", label = "Height (rectangle)", min = 100, max = 700, step = 2, value = 198, format = "%d", live = false, onChange = set("height") },
+		{ "Slider", label = "Scale (whole cluster)", min = 0.6, max = 2, step = 0.05, percent = true, value = 1, live = false, onChange = set("scale") },
+		{ "Toggle", id = "unlock", label = "Unlock: drag the map to move it, its corner to resize", value = false, onChange = set("unlock") },
+		{ "Toggle", id = "rotate", label = "Rotate the map with the player", value = false, onChange = set("rotate") },
 		{ "Toggle", label = "Zoom with the mouse wheel", value = true, onChange = set("wheelZoom") },
-		{ "Toggle", label = "Collect addon buttons into a drawer", value = false, onChange = set("drawer") },
-		{ "CheckList", label = "Hide", height = 130, value = {}, onChange = function(v) skin.hide = v applySkin() end, items = {
+		{ "Toggle", id = "drawer", label = "Collect addon buttons into a drawer", value = false, onChange = set("drawer") },
+		{ "CheckList", id = "hide", label = "Hide", height = 130, value = {}, onChange = function(v) skin.hide = v applySkin() end, items = {
 			{ value = "ring", label = "Round ring" }, { value = "header", label = "Zone name header" }, { value = "tracking", label = "Tracking button" },
 			{ value = "calendar", label = "Calendar" }, { value = "compartment", label = "Addon compartment" } } },
-		{ "Button", text = "Reset", onClick = function() FK.MinimapSkin.Reset() end },
-	}) },
+	}, function(refs) minimapRefs = refs end) },
 	{ id = "display", label = "Display", build = function(p)
 		local _, refs = FK.Build(p, { "ScrollArea", points = { { "TOPLEFT" }, { "BOTTOMRIGHT" } }, gap = 8, children = {
 		{ "TimerBar", id = "timer", label = "TimerBar", duration = 30 },
@@ -213,6 +236,8 @@ FK:OnLogin(function()
 		if msg == "dialog" then return FK.Confirm("Delete this goal?", function() end) end
 		local shape, border = msg:match("^minimap%s+(%S+)%s*(%S*)")
 		if shape == "reset" then return FK.MinimapSkin.Reset() end
+		if shape == "drawer" then return FK.MinimapSkin.drawer and FK.MinimapSkin.drawer.flyout:Show() end
+		if shape == "navigator" then ns.gallery.tabs:Select("minimap") return ns.navigator() end
 		if shape then
 			return FK.MinimapSkin.Apply({ shape = shape, border = border ~= "" and border or "metal", drawer = true, hide = { "ring" } })
 		end

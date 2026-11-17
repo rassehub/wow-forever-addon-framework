@@ -346,6 +346,78 @@ def glow(c):
         c.set_source_rgba(1, 1, 1, 0.045); c.set_line_width(2.2); c.stroke()
 
 
+# --- minimap masks and rings -----------------------------------------------------------------
+# Masks: the minimap stays square (the client cannot render it otherwise, verified step 14) and is
+# masked to a band: rect-h<n> keeps n/32 of the height, rect-w<n> n/32 of the width. 32 steps make
+# any width:height ratio from 1:4 to 4:1 look free.
+MASK = 256
+
+
+def masks():
+    out = OUT / "Masks"
+    out.mkdir(parents=True, exist_ok=True)
+    for n in range(8, 33):
+        for kind in ("h", "w"):
+            surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, MASK, MASK)
+            c = cairo.Context(surf)
+            band = MASK * n / 32
+            if kind == "h":
+                rrect(c, 0, (MASK - band) / 2, MASK, band, 2)
+            else:
+                rrect(c, (MASK - band) / 2, 0, band, MASK, 2)
+            c.set_source_rgba(1, 1, 1, 1)
+            c.fill()
+            surf.write_to_png(str(out / f"rect-{kind}{n}.png"))
+
+
+# Rings: round borders drawn over a round minimap (one texture, not a nine-slice).
+RINGS = {}
+
+
+def ring(fn):
+    RINGS[fn.__name__] = fn
+    return fn
+
+
+R = 256
+
+
+def ring_canvas():
+    surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, R, R)
+    return surf, cairo.Context(surf)
+
+
+@ring
+def ring_thin(c):
+    c.arc(R / 2, R / 2, R / 2 - 4, 0, TAU); c.set_line_width(5); c.set_source_rgba(0, 0, 0, 0.5); c.stroke()
+    c.arc(R / 2, R / 2, R / 2 - 4, 0, TAU); c.set_line_width(2.4); c.set_source_rgba(1, 1, 1, 1); c.stroke()
+
+
+@ring
+def ring_metal(c):
+    g = cairo.LinearGradient(0, 0, 0, R)
+    for off, v in ((0, 0.82), (0.5, 0.42), (1, 0.66)):
+        g.add_color_stop_rgba(off, v, v, v + 0.02, 1)
+    c.arc(R / 2, R / 2, R / 2 - 7, 0, TAU); c.set_line_width(10); c.set_source(g); c.stroke()
+    c.arc(R / 2, R / 2, R / 2 - 12.5, 0, TAU); c.set_line_width(2); c.set_source_rgba(0, 0, 0, 0.85); c.stroke()
+
+
+@ring
+def ring_soft(c):
+    for i in range(10, 0, -1):
+        c.arc(R / 2, R / 2, R / 2 - 12 + i, 0, TAU); c.set_line_width(2); c.set_source_rgba(0, 0, 0, 0.06); c.stroke()
+    c.arc(R / 2, R / 2, R / 2 - 12, 0, TAU); c.set_line_width(2); c.set_source_rgba(1, 1, 1, 0.6); c.stroke()
+
+
+@ring
+def ring_double(c):
+    c.arc(R / 2, R / 2, R / 2 - 4, 0, TAU); c.set_line_width(3.5); c.set_source_rgba(1, 1, 1, 1); c.stroke()
+    c.arc(R / 2, R / 2, R / 2 - 11, 0, TAU); c.set_line_width(1.5); c.set_source_rgba(1, 1, 1, 0.75); c.stroke()
+    for a in range(4):
+        ang = a * TAU / 4 - TAU / 4
+        c.arc(R / 2 + (R / 2 - 4) * math.cos(ang), R / 2 + (R / 2 - 4) * math.sin(ang), 6, 0, TAU); c.fill()
+
+
 def main():
     (OUT / "Icons").mkdir(parents=True, exist_ok=True)
     (OUT / "Frames").mkdir(parents=True, exist_ok=True)
@@ -359,6 +431,11 @@ def main():
         c.set_source_rgba(1, 1, 1, 1)
         fn(c)
         surf.write_to_png(str(OUT / "Frames" / f"{name}.png"))
+    masks()
+    for name, fn in RINGS.items():
+        surf, c = ring_canvas()
+        fn(c)
+        surf.write_to_png(str(OUT / "Frames" / f"{name.replace('_', '-')}.png"))
     # the list of names, so the library can tell a media icon from a typo
     names = ", ".join(f'["{n}"] = true' for n in sorted(ICONS))
     (OUT / "Icons.lua").write_text(

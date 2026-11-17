@@ -2,11 +2,11 @@ local _, ns = ...
 local FK = ns.FK
 local Theme = FK.Theme
 
----@module MinimapSkin  Re-styles the game's minimap (minimap addons): FK.MinimapSkin.Apply({ shape = "square"|"round", border = "metal"|"thin"|"soft"|"double"|"none", borderColor = theme colour or {r,g,b}, scale (MinimapCluster), wheelZoom (default true), hide = { "ring", "header", "tracking", "calendar", "compartment" }, drawer = true (collect other addons' minimap buttons into a flyout list with their names) }); calling it again with other options re-applies; FK.MinimapSkin.Reset() puts everything back. Nothing is saved by the module: call Apply from your settings (e.g. on login and in onChange). Square sets the GetMinimapShape() convention so button libraries place buttons on the square edge. Blizzard pieces are found by the names the 1.60 client uses (dumped in game); missing ones are skipped.
+---@module MinimapSkin  Re-styles and re-shapes the game's minimap (minimap and navigator addons). FK.MinimapSkin.Apply({ shape = "round"|"square"|"rect", width, height (rect: any ratio 1:4..4:1; square/round use width), border = "thin"|"metal"|"soft"|"double"|"none" (rings when round), borderColor (theme colour or {r,g,b}), scale (whole cluster), position = { point, relPoint, x, y } (detaches the map from the cluster, e.g. bottom centre for a navigator), rotate (the map turns with you), wheelZoom (default true), hide = { "ring", "header", "tracking", "calendar", "compartment" }, drawer = true (other addons' minimap buttons in a flyout list with names), unlock = true (drag handle and resize grip; report changes to onLayout({ position, width, height }) and save them) }). Calling Apply again re-applies; FK.MinimapSkin.Reset() restores everything. Nothing is saved by the module. How the client renders the minimap was measured in game (step 14): it is always square, so rectangles are a square map under a band mask.
 local Skin = { hidden = {}, moved = {} }
 FK.MinimapSkin = Skin
 
-local ROUND_MASK = "Interface\\CharacterFrame\\TempPortraitAlphaMask"
+local ROUND_MASK = "Interface\\Masks\\CircleMaskScalable" -- the client's own (verified in game)
 local SQUARE_MASK = "Interface\\Buttons\\WHITE8X8"
 local PIECES = {
 	ring = function() return MinimapCompassTexture end,
@@ -18,7 +18,7 @@ local PIECES = {
 
 local function hidePiece(name)
 	local f = PIECES[name] and PIECES[name]()
-	if f and f.Hide and not Skin.hidden[f] then
+	if f and f.Hide and Skin.hidden[f] == nil then
 		Skin.hidden[f] = f:IsShown()
 		f:Hide()
 		-- the client shows some pieces again on its own events: keep them hidden while skinned
@@ -45,6 +45,16 @@ local function isAddonButton(f)
 	return name and (name:find("^LibDBIcon10_") or name:find("MinimapButton$")) and f:GetObjectType() == "Button"
 end
 
+-- The mask for a width:height band, and the square size that holds it.
+function Skin.RectMask(w, h)
+	if w >= h then
+		local n = math.max(8, math.min(32, math.floor(h / w * 32 + 0.5)))
+		return FK.Media("Masks/rect-h" .. n), w, w, w * n / 32
+	end
+	local n = math.max(8, math.min(32, math.floor(w / h * 32 + 0.5)))
+	return FK.Media("Masks/rect-w" .. n), h, h * n / 32, h
+end
+
 local function buildDrawer(color)
 	local d = Skin.drawer
 	if not d then
@@ -60,31 +70,37 @@ local function buildDrawer(color)
 		d:SetScript("OnClick", function() d.flyout:SetShown(not d.flyout:IsShown()) end)
 		d:SetScript("OnEnter", function(self) FK.Tooltip.Show(self, { FK.L["Addon buttons"], FK.L["Click to show the minimap buttons of your addons."] }, "ANCHOR_LEFT") end)
 		d:SetScript("OnLeave", function() GameTooltip:Hide() end)
+		-- button libraries fade their buttons out when the mouse leaves the minimap: not in here
+		d.flyout:SetScript("OnShow", function() for _, f in ipairs(Skin.moved) do f:SetAlpha(1) end end)
 		Skin.drawer = d
 	end
 	d:ClearAllPoints()
-	d:SetPoint("BOTTOMLEFT", Minimap, "BOTTOMLEFT", 2, 2)
+	d:SetPoint("BOTTOMLEFT", Skin.view, "BOTTOMLEFT", 2, 2)
 	d.icon:SetVertexColor(color[1], color[2], color[3])
 	Theme.Paint(d.flyout, Theme.current.surface.menu)
 	local buttons = {}
 	for _, f in ipairs({ Minimap:GetChildren() }) do
 		if isAddonButton(f) then buttons[#buttons + 1] = f end
 	end
-	for _, f in ipairs(Skin.moved) do if f:GetParent() == d.flyout then buttons[#buttons + 1] = f end end
 	table.sort(buttons, function(a, b) return Skin.ButtonName(a) < Skin.ButtonName(b) end)
-	local size, width = 32, 200
+	local size = 32
 	d.labels = d.labels or {}
 	for _, l in ipairs(d.labels) do l:Hide() end
 	for i, f in ipairs(buttons) do
-		if f:GetParent() ~= d.flyout then
-			Skin.moved[#Skin.moved + 1] = f
-			f.fkSkinParent = f:GetParent()
-			f.fkSkinPoints = {}
-			for p = 1, f:GetNumPoints() do f.fkSkinPoints[p] = { f:GetPoint(p) } end
-			f:SetParent(d.flyout)
-		end
+		Skin.moved[#Skin.moved + 1] = f
+		f.fkSkinParent = f:GetParent()
+		f.fkSkinPoints = {}
+		for p = 1, f:GetNumPoints() do f.fkSkinPoints[p] = { f:GetPoint(p) } end
+		f:SetParent(d.flyout)
 		f:ClearAllPoints()
 		f:SetPoint("TOPLEFT", d.flyout, "TOPLEFT", 4, -6 - (i - 1) * size)
+		f:SetAlpha(1)
+		if not f.fkSkinAlpha then
+			f.fkSkinAlpha = true
+			hooksecurefunc(f, "SetAlpha", function(self, a)
+				if a < 1 and Skin.drawer and self:GetParent() == Skin.drawer.flyout then self:SetAlpha(1) end
+			end)
+		end
 		local label = d.labels[i]
 		if not label then
 			label = d.flyout:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -99,44 +115,166 @@ local function buildDrawer(color)
 		label:SetText(Skin.ButtonName(f))
 		label:Show()
 	end
-	d.flyout:SetSize(width, 12 + math.max(#buttons, 1) * size)
+	d.flyout:SetSize(200, 12 + math.max(#buttons, 1) * size)
 	d.flyout:ClearAllPoints()
 	d.flyout:SetPoint("TOPRIGHT", d, "BOTTOMLEFT", 0, -2)
 	d:SetShown(#buttons > 0)
+end
+
+-- Drag handle and resize grip over the visible map (unlock mode).
+local function buildHandles(o)
+	local h = Skin.handle
+	if not h then
+		h = FK.Frame("Frame", UIParent)
+		h:SetFrameStrata("DIALOG")
+		h:EnableMouse(true)
+		h:RegisterForDrag("LeftButton")
+		h.label = h:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+		h.label:SetPoint("CENTER")
+		h.grip = CreateFrame("Button", nil, h)
+		h.grip:SetSize(18, 18)
+		h.grip:SetPoint("BOTTOMRIGHT", -2, 2)
+		h.grip.icon = h.grip:CreateTexture(nil, "ARTWORK")
+		h.grip.icon:SetAllPoints()
+		h.grip.icon:SetTexture(FK.Media("Icons/grip"))
+		h:SetScript("OnDragStart", function()
+			Minimap:SetMovable(true)
+			Minimap:StartMoving()
+		end)
+		h:SetScript("OnDragStop", function()
+			Minimap:StopMovingOrSizing()
+			local point, _, relPoint, x, y = Minimap:GetPoint(1)
+			Skin.options.position = { point = point, relPoint = relPoint, x = x, y = y }
+			Skin.Apply(Skin.options)
+			Skin.Report()
+		end)
+		h.grip:RegisterForDrag("LeftButton")
+		h.grip:SetScript("OnDragStart", function()
+			local cx, cy = GetCursorPosition()
+			local o2 = Skin.options
+			h.sizing = { x = cx, y = cy, w = o2.width or 198, hh = o2.height or o2.width or 198 }
+		end)
+		h.grip:SetScript("OnUpdate", function()
+			local s = h.sizing
+			if not s then return end
+			local cx, cy = GetCursorPosition()
+			local es = UIParent:GetEffectiveScale() * (Skin.options.scale or 1)
+			local w = math.max(80, math.min(800, s.w + (cx - s.x) / es))
+			local hh = math.max(80, math.min(800, s.hh - (cy - s.y) / es))
+			local o2 = Skin.options
+			o2.width, o2.height = math.floor(w + 0.5), math.floor(hh + 0.5)
+			if o2.shape ~= "rect" then o2.height = o2.width end
+			Skin.Shape(o2)
+		end)
+		h.grip:SetScript("OnDragStop", function()
+			h.sizing = nil
+			Skin.Apply(Skin.options)
+			Skin.Report()
+		end)
+		Skin.handle = h
+	end
+	local c = { Theme.Color("accent") }
+	Theme.Paint(h, { nineslice = "media:Frames/thin", size = 6, color = c, bg = { c[1], c[2], c[3], 0.12 } })
+	Theme.Font(h.label, "normal", "accent")
+	h.label:SetText(FK.L["Drag to move  ·  corner to resize"])
+	h.grip.icon:SetVertexColor(c[1], c[2], c[3])
+	h:ClearAllPoints()
+	h:SetAllPoints(Skin.view)
+	h:Show()
+end
+
+function Skin.Report()
+	local o = Skin.options
+	if o and o.onLayout then o.onLayout({ position = o.position, width = o.width, height = o.height }) end
+end
+
+-- Size, mask and border for the current shape (also used live while resizing).
+function Skin.Shape(o)
+	local shape = o.shape or "round"
+	local w = o.width or Skin.original.width
+	local h = shape == "rect" and (o.height or w) or w
+	local mask, side, vw, vh = SQUARE_MASK, w, w, w
+	if shape == "rect" then mask, side, vw, vh = Skin.RectMask(w, h)
+	elseif shape == "round" then mask = ROUND_MASK end
+	Minimap:SetSize(side, side)
+	Minimap:SetMaskTexture(mask)
+	-- the visible part of the map: what borders, the drawer and the handle frame
+	local view = Skin.view
+	if not view then
+		view = CreateFrame("Frame", nil, Minimap)
+		Skin.view = view
+	end
+	view:ClearAllPoints()
+	view:SetPoint("CENTER", Minimap, "CENTER")
+	view:SetSize(vw, vh)
+	-- border
+	local b, r = Skin.border, Skin.ring
+	if b then b:Hide() end
+	if r then r:Hide() end
+	if o.border and o.border ~= "none" then
+		local c = o.borderColor
+		c = type(c) == "string" and { Theme.Color(c) } or c or { Theme.Color("accent") }
+		local style = ({ thin = "thin", soft = "soft", double = "double" })[o.border] or "metal"
+		local tint = style ~= "metal" and c or { 1, 1, 1 }
+		if shape == "round" then
+			if not r then
+				r = CreateFrame("Frame", nil, Minimap)
+				r:SetFrameLevel(Minimap:GetFrameLevel() + 10)
+				r.tex = r:CreateTexture(nil, "OVERLAY")
+				r.tex:SetAllPoints()
+				Skin.ring = r
+			end
+			local pad = style == "thin" and 2 or 6
+			r:ClearAllPoints()
+			r:SetPoint("TOPLEFT", view, "TOPLEFT", -pad, pad)
+			r:SetPoint("BOTTOMRIGHT", view, "BOTTOMRIGHT", pad, -pad)
+			r.tex:SetTexture(FK.Media("Frames/ring-" .. style))
+			r.tex:SetVertexColor(tint[1], tint[2], tint[3], 1)
+			r:Show()
+		else
+			if not b then
+				b = CreateFrame("Frame", nil, Minimap)
+				b:SetFrameLevel(Minimap:GetFrameLevel() + 10)
+				Skin.border = b
+			end
+			local pad = style == "thin" and 2 or 4
+			b:ClearAllPoints()
+			b:SetPoint("TOPLEFT", view, "TOPLEFT", -pad, pad)
+			b:SetPoint("BOTTOMRIGHT", view, "BOTTOMRIGHT", pad, -pad)
+			Theme.Paint(b, { nineslice = "media:Frames/" .. style, size = style == "thin" and 6 or 14, color = style ~= "metal" and c or nil })
+			b:Show()
+		end
+	end
 end
 
 function Skin.Apply(o)
 	o = o or {}
 	Skin.Reset(true)
 	Skin.options = o
-	local square = o.shape == "square"
-	Minimap:SetMaskTexture(square and SQUARE_MASK or ROUND_MASK)
-	-- the convention minimap button libraries read to place buttons on the edge
-	GetMinimapShape = square and function() return "SQUARE" end or nil
-	local c = o.borderColor
-	c = type(c) == "string" and { Theme.Color(c) } or c or { Theme.Color("accent") }
-	if o.border and o.border ~= "none" then
-		hidePiece("ring")
-		local b = Skin.border
-		if not b then
-			b = CreateFrame("Frame", nil, Minimap)
-			b:SetFrameLevel(Minimap:GetFrameLevel() + 10)
-			Skin.border = b
-		end
-		local pad = square and 4 or 6
-		b:ClearAllPoints()
-		b:SetPoint("TOPLEFT", -pad, pad)
-		b:SetPoint("BOTTOMRIGHT", pad, -pad)
-		local frame = ({ thin = "thin", soft = "soft", double = "double" })[o.border] or "metal"
-		local size = frame == "thin" and 6 or (square and 14 or 30)
-		Theme.Paint(b, { nineslice = "media:Frames/" .. frame, size = size, color = (frame ~= "metal") and c or nil })
-		b:Show()
+	if not Skin.original then
+		local pts = {}
+		for i = 1, Minimap:GetNumPoints() do pts[i] = { Minimap:GetPoint(i) } end
+		Skin.original = { width = Minimap:GetWidth(), points = pts, rotate = C_CVar and (C_CVar.GetCVar("rotateMinimap") or "0") }
 	end
+	local shape = o.shape or "round"
+	-- the convention minimap button libraries read to place buttons on the edge
+	GetMinimapShape = shape ~= "round" and function() return "SQUARE" end or nil
+	Skin.Shape(o)
+	if o.border and o.border ~= "none" then hidePiece("ring") end
 	for _, name in ipairs(o.hide or {}) do hidePiece(name) end
+	if shape ~= "round" then hidePiece("ring") end -- the round ring cannot frame another shape
+	Minimap:ClearAllPoints()
+	if o.position then
+		local p = o.position
+		Minimap:SetPoint(p.point or "CENTER", UIParent, p.relPoint or p.point or "CENTER", p.x or 0, p.y or 0)
+	else
+		for _, p in ipairs(Skin.original.points) do Minimap:SetPoint(unpack(p)) end
+	end
 	if o.scale and MinimapCluster then
 		Skin.oldScale = Skin.oldScale or MinimapCluster:GetScale()
 		MinimapCluster:SetScale(o.scale)
 	end
+	if o.rotate ~= nil and C_CVar then C_CVar.SetCVar("rotateMinimap", o.rotate and "1" or "0") end
 	if o.wheelZoom ~= false and not Skin.wheel then
 		Skin.wheel = true
 		Minimap:EnableMouseWheel(true)
@@ -146,14 +284,20 @@ function Skin.Apply(o)
 			Minimap:SetZoom(math.max(0, math.min(Minimap:GetZoomLevels() - 1, z)))
 		end)
 	end
+	local c = o.borderColor
+	c = type(c) == "string" and { Theme.Color(c) } or c or { Theme.Color("accent") }
 	if o.drawer then buildDrawer(c) end
+	if o.unlock then buildHandles(o) end
 end
 
--- Back to the client's own minimap. keepHooks: used internally between two Apply calls.
+-- Back to the client's own minimap. internal: between two Apply calls (keeps the options).
 function Skin.Reset(internal)
+	local orig = Skin.original
 	Minimap:SetMaskTexture(ROUND_MASK)
 	GetMinimapShape = nil
 	if Skin.border then Skin.border:Hide() end
+	if Skin.ring then Skin.ring:Hide() end
+	if Skin.handle then Skin.handle:Hide() end
 	for f, wasShown in pairs(Skin.hidden) do
 		Skin.hidden[f] = nil
 		if wasShown then f:Show() end
@@ -166,5 +310,12 @@ function Skin.Reset(internal)
 	Skin.moved = {}
 	if Skin.drawer then Skin.drawer:Hide() Skin.drawer.flyout:Hide() end
 	if Skin.oldScale and MinimapCluster then MinimapCluster:SetScale(Skin.oldScale) Skin.oldScale = nil end
+	if not internal and orig then
+		Minimap:SetSize(orig.width, orig.width)
+		Minimap:ClearAllPoints()
+		for _, p in ipairs(orig.points) do Minimap:SetPoint(unpack(p)) end
+		if orig.rotate and C_CVar then C_CVar.SetCVar("rotateMinimap", orig.rotate) end
+		Skin.original = nil
+	end
 	if not internal then Skin.options = nil end
 end

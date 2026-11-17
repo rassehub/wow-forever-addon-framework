@@ -38,6 +38,33 @@ for _, e in ipairs({ "ADDON_ACTION_BLOCKED", "ADDON_ACTION_FORBIDDEN", "LUA_WARN
 	if not C_EventUtils or C_EventUtils.IsEventValid(e) then events:RegisterEvent(e) end
 end
 
+-- Records an observation in this session (shown by `fk live results` under notes): for experiments
+-- that look at state some seconds after the queue ran. Values are turned into text.
+function FKDev.Note(key, ...)
+	if not session then return end
+	session.notes = session.notes or {}
+	local parts = {}
+	for i = 1, select("#", ...) do parts[i] = tostring((select(i, ...))) end
+	session.notes[#session.notes + 1] = { key = tostring(key), value = table.concat(parts, "  "), time = now() }
+end
+
+-- Runs steps one after another: FKDev.Steps({ { 2, function() ... end }, { 1, function() Screenshot() end } })
+-- (each waits its delay in seconds after the previous one). Errors are recorded, not raised.
+function FKDev.Steps(steps)
+	local i = 0
+	local function nextStep()
+		i = i + 1
+		local s = steps[i]
+		if not s then return end
+		C_Timer.After(s[1] or 0, function()
+			local ok, err = pcall(s[2])
+			if not ok then record("error", "step " .. i .. ": " .. tostring(err), debugstack(2, 6, 0)) end
+			nextStep()
+		end)
+	end
+	nextStep()
+end
+
 function FKDev.Test(addon, name, fn)
 	FKDev.tests[#FKDev.tests + 1] = { addon = addon, name = name, fn = fn }
 end
