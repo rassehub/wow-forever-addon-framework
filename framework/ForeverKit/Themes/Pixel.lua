@@ -10,4 +10,5 @@ FK.Theme.Register("pixel", {
 		title = { "GameFontHighlight", color = "title" },
 		heading = { "GameFontHighlight", color = "accent" },
 	},
+	icon = FK.Theme.MediaIconSet("dim"),
 })

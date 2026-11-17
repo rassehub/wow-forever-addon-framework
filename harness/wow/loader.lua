@@ -76,6 +76,22 @@ local function split(list)
 	return out
 end
 
+-- The file on disk behind a texture path inside a loaded addon ("Interface\\AddOns\\X\\a\\b.png"),
+-- trying the client's extensions when there is none. Returns path, exists; nil for other paths.
+function H.AddonFile(texture)
+	if type(texture) ~= "string" then return nil end
+	local addon, rest = texture:gsub("/", "\\"):match("^[Ii]nterface\\[Aa]dd[Oo]ns\\([^\\]+)\\(.+)$")
+	local a = addon and H.addons[addon]
+	if not a then return nil end
+	local base = a.dir .. "/" .. rest:gsub("\\", "/")
+	local candidates = base:match("%.%w+$") and { base } or { base .. ".png", base .. ".tga", base .. ".blp" }
+	for _, p in ipairs(candidates) do
+		local f = io_open(p, "rb")
+		if f then f:close() return p, true end
+	end
+	return candidates[1], false
+end
+
 -- Loads the addon in `dir` (and any dependency found on H.addonPaths). Returns its namespace.
 function H.LoadAddon(dir)
 	dir = dir:gsub("/+$", "")

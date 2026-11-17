@@ -1,5 +1,6 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
 	<Script file="Core\Init.lua"/>
+	<Script file="Media\Icons.lua"/>
 	<Script file="Core\Util.lua"/>
 	<Script file="Core\Events.lua"/>
 	<Script file="Core\Timer.lua"/>
@@ -13,6 +14,8 @@
 	<Script file="Themes\Vanilla.lua"/>
 	<Script file="Themes\Glass.lua"/>
 	<Script file="Themes\Parchment.lua"/>
+	<Script file="Themes\Modern.lua"/>
+	<Script file="Themes\Midnight.lua"/>
 	<Script file="Widgets\Layout.lua"/>
 	<Script file="Widgets\Basic.lua"/>
 	<Script file="Widgets\Slider.lua"/>

@@ -146,7 +146,7 @@ test("themes: extending merges groups but replaces specs", function()
 	ok(vanilla.surface.button.normal.texture and not vanilla.surface.button.normal.border, "a spec replaces the base spec")
 	eq(vanilla.metric.row, base.metric.row, "untouched keys are inherited")
 	eq(vanilla.color.heading, { 1, 0.82, 0 })
-	eq(FK.Theme:Names(), { "glass", "parchment", "pixel", "vanilla" })
+	eq(FK.Theme:Names(), { "glass", "midnight", "modern", "parchment", "pixel", "vanilla" })
 	eq(H.LeakedGlobals("KitTest"), {})
 end)
 

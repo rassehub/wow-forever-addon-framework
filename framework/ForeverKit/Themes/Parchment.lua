@@ -91,6 +91,6 @@ FK.Theme.Register("parchment", {
 		scrollThumb = { normal = { bg = { 0.42, 0.26, 0.12, 0.8 } }, hover = { bg = { 0.55, 0.12, 0.05, 1 } } },
 		barBackground = { bg = { 0.4, 0.27, 0.12, 0.2 } },
 	},
-	icon = { handle = { text = "=", font = "small", color = "dim" } },
+	icon = FK.Theme.MediaIconSet("dim"),
 	metric = { pad = 12, gap = 7, windowInset = { 4, 4, 4, 4 } },
 })

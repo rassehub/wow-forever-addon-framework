@@ -62,5 +62,6 @@ FK.Theme.Register("glass", {
 		scrollThumb = { normal = { bg = { 1, 1, 1, 0.25 } }, hover = { bg = { 1, 1, 1, 0.45 } } },
 		barBackground = { bg = { 0, 0, 0, 0.3 } },
 	},
+	icon = FK.Theme.MediaIconSet("dim"),
 	metric = { pad = 12, gap = 7, row = 24, control = 24, title = 28 },
 })

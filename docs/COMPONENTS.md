@@ -19,7 +19,7 @@ FK:On(event, fn) -> handle (game events and the library's own "fk.*" events), FK
 
 ### FK
 
-The library object, in the addon's namespace: local ADDON, ns = ...; local FK = ns.FK. FK.addon (folder name), FK.title (TOC title), FK.version, FK.dev (true: design warnings print in chat), FK:Warn(code, message) records a design warning in FK.warnings.  
+The library object, in the addon's namespace: local ADDON, ns = ...; local FK = ns.FK. FK.addon (folder name), FK.title (TOC title), FK.version, FK.dev (true: design warnings print in chat), FK:Warn(code, message) records a design warning in FK.warnings, FK.Media("Icons/cog") is the path of the library's own art (Media/: 54 icons, nine-slice frames).  
 <sub>[framework/ForeverKit/Core/Init.lua:16](../framework/ForeverKit/Core/Init.lua#L16)</sub>
 
 ### Locale
@@ -34,7 +34,7 @@ FK:Slash({ "/myaddon", "/ma" }, { [""] = fn, config = { "help text", fn(arg) } }
 
 ### Theme
 
-Token-based skinning; widgets read the current theme only. FK.Theme:Set(name) re-skins everything live; FK.Theme:Names(); FK.Theme.Register(name, { extends = "pixel", color = {...}, font = {...}, surface = {...}, icon = {...}, metric = {...} }) (Themes/Base.lua lists every token). Built in: pixel, vanilla, glass, parchment. FK.Theme.Color(role), FK.Theme.Font(fontString, role, colorRole), FK.Theme.Paint(frame, surfaceSpec), FK.Sound(roleOrKitOrFile, channel), FK.muted.  
+Token-based skinning; widgets read the current theme only. FK.Theme:Set(name) re-skins everything live; FK.Theme:Names(); FK.Theme.Register(name, { extends = "pixel", color = {...}, font = {...}, surface = {...}, icon = {...}, metric = {...} }) (Themes/Base.lua lists every token). Built in: pixel, vanilla, glass, parchment, modern, midnight. Nine-slice surfaces and the library's icon set (FK.mediaIcons, FK.Theme.MediaIconSet(tint)) come from Media/ FK.Theme.Color(role), FK.Theme.Font(fontString, role, colorRole), FK.Theme.Paint(frame, surfaceSpec), FK.Sound(roleOrKitOrFile, channel), FK.muted.  
 <sub>[framework/ForeverKit/Core/Theme.lua:4](../framework/ForeverKit/Core/Theme.lua#L4)</sub>
 
 ### Timer
@@ -309,7 +309,7 @@ Movable top-level window: title, close button, Escape closes it, remembers posit
 ### Panel
 
 Bordered box that stacks its children; optional title. opts: title, surface = "panel"|"inset"|false, gap, padding. Add children with panel:Add(widget).  
-<sub>[framework/ForeverKit/Widgets/Window.lua:183](../framework/ForeverKit/Widgets/Window.lua#L183)</sub>
+<sub>[framework/ForeverKit/Widgets/Window.lua:185](../framework/ForeverKit/Widgets/Window.lua#L185)</sub>
 
 ## Feature modules
 

@@ -1,7 +1,7 @@
 local _, ns = ...
 local FK = ns.FK
 
----@module Theme  Token-based skinning; widgets read the current theme only. FK.Theme:Set(name) re-skins everything live; FK.Theme:Names(); FK.Theme.Register(name, { extends = "pixel", color = {...}, font = {...}, surface = {...}, icon = {...}, metric = {...} }) (Themes/Base.lua lists every token). Built in: pixel, vanilla, glass, parchment. FK.Theme.Color(role), FK.Theme.Font(fontString, role, colorRole), FK.Theme.Paint(frame, surfaceSpec), FK.Sound(roleOrKitOrFile, channel), FK.muted.
+---@module Theme  Token-based skinning; widgets read the current theme only. FK.Theme:Set(name) re-skins everything live; FK.Theme:Names(); FK.Theme.Register(name, { extends = "pixel", color = {...}, font = {...}, surface = {...}, icon = {...}, metric = {...} }) (Themes/Base.lua lists every token). Built in: pixel, vanilla, glass, parchment, modern, midnight. Nine-slice surfaces and the library's icon set (FK.mediaIcons, FK.Theme.MediaIconSet(tint)) come from Media/ FK.Theme.Color(role), FK.Theme.Font(fontString, role, colorRole), FK.Theme.Paint(frame, surfaceSpec), FK.Sound(roleOrKitOrFile, channel), FK.muted.
 
 -- Themes are token tables. Widgets never hard-code a colour, font, texture or size: they ask
 -- the current theme. Switching theme re-skins every live widget.
@@ -22,6 +22,11 @@ local FK = ns.FK
 --   { backdrop = <Blizzard backdrop table>, bg = color, border = color }
 --   { texture = path, coords = { l, r, t, b }, color = color, blend = "ADD" }
 --   { atlas = name, color = color }
+--   { nineslice = "media:Frames/metal", size = 12, color = tint, bg = fill, inset = 2 }
+--       a nine-slice frame from a 64x64 image with 16 px corners, drawn with corners `size` UI
+--       units wide; the centre comes from the image, `bg` fills behind it (inset from the edge)
+-- A path "media:Icons/cog" names the library's own art (FK.Media). Any icon name from Media/Icons
+-- (FK.mediaIcons) works where a theme icon is asked for, tinted with the text colour.
 
 local Theme = { themes = {}, live = setmetatable({}, { __mode = "k" }), fontDelta = 0, opacity = 1 }
 FK.Theme = Theme
@@ -103,10 +108,69 @@ function Theme.Font(fontString, role, colorRole)
 	fontString:SetShadowColor(0, 0, 0, spec.shadow == false and 0 or 1)
 end
 
+local function resolve(file)
+	if type(file) == "string" and file:sub(1, 6) == "media:" then return FK.Media(file:sub(7)) end
+	return file
+end
+Theme.Resolve = resolve
+
+-- Nine textures around (and in) `frame`: fixed corners, stretched edges and centre.
+local CUT = { 0, 0.25, 0.75, 1 } -- 16 px corners of a 64 px image
+local function nineSlice(frame, spec, alphaScale)
+	local t = frame.fkSlices
+	if not t then
+		t = {}
+		for i = 1, 9 do t[i] = frame:CreateTexture(nil, "BORDER") end
+		local tl, tr, bl, br = t[1], t[3], t[7], t[9]
+		tl:SetPoint("TOPLEFT") tr:SetPoint("TOPRIGHT") bl:SetPoint("BOTTOMLEFT") br:SetPoint("BOTTOMRIGHT")
+		t[2]:SetPoint("TOPLEFT", tl, "TOPRIGHT") t[2]:SetPoint("BOTTOMRIGHT", tr, "BOTTOMLEFT")
+		t[8]:SetPoint("TOPLEFT", bl, "TOPRIGHT") t[8]:SetPoint("BOTTOMRIGHT", br, "BOTTOMLEFT")
+		t[4]:SetPoint("TOPLEFT", tl, "BOTTOMLEFT") t[4]:SetPoint("BOTTOMRIGHT", bl, "TOPRIGHT")
+		t[6]:SetPoint("TOPLEFT", tr, "BOTTOMLEFT") t[6]:SetPoint("BOTTOMRIGHT", br, "TOPRIGHT")
+		t[5]:SetPoint("TOPLEFT", tl, "BOTTOMRIGHT") t[5]:SetPoint("BOTTOMRIGHT", br, "TOPLEFT")
+		frame.fkSlices = t
+	end
+	local file, size = resolve(spec.nineslice), spec.size or 12
+	local c = spec.color or { 1, 1, 1, 1 }
+	for i = 1, 9 do
+		local row, col = math.floor((i - 1) / 3), (i - 1) % 3
+		local tex = t[i]
+		tex:SetTexture(file)
+		tex:SetTexCoord(CUT[col + 1], CUT[col + 2], CUT[row + 1], CUT[row + 2])
+		tex:SetVertexColor(c[1], c[2], c[3], (c[4] or 1) * (spec.bg and 1 or alphaScale))
+		tex:SetBlendMode(spec.blend or "BLEND")
+		if col ~= 1 then tex:SetWidth(size) end
+		if row ~= 1 then tex:SetHeight(size) end
+		tex:Show()
+	end
+end
+
 -- Paints `frame` (created with BackdropTemplate) according to a surface spec; nil clears it.
 -- alphaScale multiplies the background alpha (window opacity setting).
 function Theme.Paint(frame, spec, alphaScale)
 	local tex = frame.fkFill
+	if frame.fkSlices and not (spec and spec.nineslice) then
+		for _, t in ipairs(frame.fkSlices) do t:Hide() end
+	end
+	if spec and spec.nineslice then
+		if frame.fkBackdrop then frame:SetBackdrop(nil) frame.fkBackdrop = nil end
+		nineSlice(frame, spec, alphaScale or 1)
+		if spec.bg then
+			if not tex then
+				tex = frame:CreateTexture(nil, "BACKGROUND")
+				frame.fkFill = tex
+			end
+			local inset = spec.inset or 2
+			tex:ClearAllPoints()
+			tex:SetPoint("TOPLEFT", inset, -inset)
+			tex:SetPoint("BOTTOMRIGHT", -inset, inset)
+			tex:Show()
+			Theme.Texture(tex, { bg = spec.bg }, alphaScale)
+		elseif tex then
+			tex:Hide()
+		end
+		return
+	end
 	if not spec then
 		if frame.fkBackdrop then frame:SetBackdrop(nil) frame.fkBackdrop = nil end
 		if tex then tex:Hide() end
@@ -135,9 +199,10 @@ function Theme.Paint(frame, spec, alphaScale)
 	if frame.fkBackdrop then frame:SetBackdrop(nil) frame.fkBackdrop = nil end
 	if not tex then
 		tex = frame:CreateTexture(nil, "BACKGROUND")
-		tex:SetAllPoints()
 		frame.fkFill = tex
 	end
+	tex:ClearAllPoints()
+	tex:SetAllPoints()
 	tex:Show()
 	Theme.Texture(tex, spec, a)
 end
@@ -147,7 +212,7 @@ function Theme.Texture(tex, spec, alphaScale)
 	local c = spec.color or spec.bg or { 1, 1, 1, 1 }
 	local a = (c[4] or 1) * (alphaScale or 1)
 	if spec.texture then
-		tex:SetTexture(spec.texture)
+		tex:SetTexture(resolve(spec.texture))
 		tex:SetVertexColor(c[1], c[2], c[3], a)
 	elseif spec.atlas then
 		tex:SetAtlas(spec.atlas)
@@ -158,6 +223,14 @@ function Theme.Texture(tex, spec, alphaScale)
 	local co = spec.coords
 	if co then tex:SetTexCoord(co[1], co[2], co[3], co[4]) else tex:SetTexCoord(0, 1, 0, 1) end
 	tex:SetBlendMode(spec.blend or "BLEND")
+end
+
+-- The spec for an icon name: the theme's own, else one from the library's icon set.
+function Theme.IconSpec(name)
+	local spec = Theme.current.icon[name]
+	if spec then return spec end
+	if FK.mediaIcons[name] then return { texture = "media:Icons/" .. name, tint = "text" } end
+	error("FK.Theme: no icon named " .. tostring(name), 3)
 end
 
 -- A themed glyph (close cross, arrows, cog...): FK.Theme.Icon(parent, "close") -> frame with
@@ -173,7 +246,7 @@ function Theme.Icon(parent, name, size)
 	function f:SetColor(role) self.colorRole = role self:Restyle() end
 	function f:Restyle()
 		local T = Theme.current
-		local spec = T.icon[self.iconName] or error("FK.Theme: no icon named " .. tostring(self.iconName), 2)
+		local spec = Theme.IconSpec(self.iconName)
 		local s = self.iconSize or spec.size or T.metric.icon
 		self:SetSize(s, s)
 		local r, g, b = 1, 1, 1

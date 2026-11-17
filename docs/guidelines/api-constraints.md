@@ -52,6 +52,14 @@ ForeverKit's own windows are not secure and work in combat.
 - GUIDs' server/spawn parts are obfuscated (stable within a session only).
 - `GetFrameStrata` can return a secret; do not anchor to children of the reskinned
   player/target/minimap frames by name.
+- Addon art (verified in game, step 13): PNG files shipped in an addon load, including files
+  added to an existing addon folder with only a `/reload`. `Texture:SetTexture(path)` returns
+  `true` even when the file does not exist, so loading cannot be checked in code — use the
+  emulator's "texture file missing" layout check and look at an in-game screenshot.
+- `C_Timer.After(s, fn)` rejects client (C) functions as `fn`: wrap them,
+  `C_Timer.After(1, function() Screenshot() end)`.
+- `debugstack()` names the running file's path (`Interface/AddOns/<Addon>/...`); `FK.Media`
+  uses it to find the library wherever it is embedded.
 - Verified present (1.60.1): `WorldMapFrame.ScrollContainer.Child` and `OnMapChanged` at login,
   `AddonCompartmentFrame`, `SetOverrideBindingClick`, `TooltipDataProcessor`, `C_EncodingUtil`,
   `UiMapPoint` / `C_SuperTrack` / `C_Map.SetUserWaypoint`, `GetFileIDFromPath`, every texture

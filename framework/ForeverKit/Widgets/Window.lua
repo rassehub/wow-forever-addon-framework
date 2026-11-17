@@ -98,7 +98,9 @@ FK.Define("Window", {
 			top = top + (m.plaqueGap or 14)
 		end
 		self.close:ClearAllPoints()
-		self.close:SetPoint("TOPRIGHT", s.titlebar and -inset[2] - 2 or -3, s.titlebar and -inset[3] - 2 or -3)
+		-- vanilla's large close art sits in the corner; elsewhere keep clear of the border (round corners)
+		local corner = not s.titlebar and s.plaque
+		self.close:SetPoint("TOPRIGHT", corner and -3 or -inset[2] - 4, corner and -3 or -inset[3] - 4)
 		local prev = self.close
 		for _, b in ipairs(self.extra) do
 			b:ClearAllPoints()

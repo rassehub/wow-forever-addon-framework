@@ -105,6 +105,8 @@ function H.LayoutIssues(root)
 		for _, r in ipairs(f[0].regions) do
 			if r[0].shown then
 				local x, y, w, h = box(r)
+				local file, exists = H.AddonFile(r[0].texture)
+				if file and not exists then add(r, "texture file missing: " .. tostring(r[0].texture)) end
 				if not x then
 					add(r, "unanchored region")
 				elseif r[0].type == "FontString" and (r[0].text or "") ~= "" and fx and not clipped(r) then

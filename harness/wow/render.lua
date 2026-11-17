@@ -43,6 +43,16 @@ local EDGES = {
 	{ "ui%-sliderbar%-border", function(_, c) return "border:1px solid #9a8a6a;border-radius:3px" end },
 }
 
+-- An addon image as a data: URL (cached per file).
+local Encoding = require("wow.encoding")
+local uris = {}
+local function dataUri(path)
+	if not uris[path] then
+		uris[path] = "url(data:image/png;base64," .. Encoding.EncodeBase64(H.ReadFile(path) or "") .. ")"
+	end
+	return uris[path]
+end
+
 local function esc(s) return (s:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;")) end
 
 local function rgba(c, alphaScale)
@@ -166,8 +176,29 @@ function H.Render(opts)
 		elseif s.type == "Texture" then
 			if w <= 0 or h <= 0 then return end
 			local css, glyph
+			local file, exists = H.AddonFile(s.texture)
+			local ownArt = exists and file:lower():find("%.png$") ~= nil
 			if s.color then
 				css = "background:" .. rgba(s.color, a)
+			elseif ownArt then
+				-- the addon's own art: draw the real image (exact), cut by its texture coordinates
+				-- and tinted by its vertex colour through a mask (art is white where it is tintable)
+				local co = s.texCoord or { 0, 1, 0, 1 }
+				local l, rr, t, b = co[1], co[2], co[3], co[4]
+				if #co == 8 then l, rr, t, b = co[1], co[5], co[2], co[4] end
+				local bw, bh = w / math.max(rr - l, 1e-6), h / math.max(b - t, 1e-6)
+				local geo = ("%%s-size:%.2fpx %.2fpx;%%s-position:%.2fpx %.2fpx;%%s-repeat:no-repeat"):format(bw, bh, -l * bw, -t * bh)
+				-- embedded: masks from file:// URLs are blocked as cross-origin, and the page stays self-contained
+				local url = dataUri(file)
+				local v = s.vertex or { 1, 1, 1, 1 }
+				if s.barOf then v = s.barOf[0].barColor or v end
+				if v[1] < 0.99 or v[2] < 0.99 or v[3] < 0.99 then
+					css = ("background:%s;mask-image:%s;"):format(rgba({ v[1], v[2], v[3], 1 }), url) .. geo:format("mask", "mask", "mask")
+				else
+					css = ("background-image:%s;"):format(url) .. geo:format("background", "background", "background")
+				end
+				css = css .. (";opacity:%.3f"):format(a * (v[4] or 1))
+				if s.rotation and s.rotation ~= 0 then css = css .. (";transform:rotate(%.3frad)"):format(-s.rotation) end
 			elseif s.texture or s.atlas then
 				css, glyph = art(s.texture or ("atlas:" .. s.atlas))
 				if tostring(s.texture):lower():find("ui%-radiobutton") then

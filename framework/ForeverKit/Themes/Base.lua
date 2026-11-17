@@ -8,6 +8,17 @@ local ACCENT = { 0.25, 0.62, 1 }
 local BLACK = { 0, 0, 0, 1 }
 local ARROW = "Interface\\ChatFrame\\ChatFrameExpandArrow"
 
+-- The theme icon names widgets use, drawn with the library's own icon set (Media/Icons) and
+-- tinted with `tint` (a colour role). Themes that want the modern look use this as their icons.
+function FK.Theme.MediaIconSet(tint)
+	local function m(name, size) return { texture = "media:Icons/" .. name, tint = tint or "text", size = size } end
+	return {
+		close = m("close", 14), arrowRight = m("arrow-right"), arrowDown = m("arrow-down"), arrowUp = m("arrow-up"),
+		arrowLeft = m("arrow-left"), plus = m("plus"), minus = m("minus"), cog = m("cog"), search = m("search"),
+		grip = m("grip"), handle = m("handle"),
+	}
+end
+
 FK.Theme.Register("base", {
 	abstract = true,
 	color = {

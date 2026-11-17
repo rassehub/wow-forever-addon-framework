@@ -38,6 +38,14 @@ FK:OnLogin(function()
 end)
 ns.loadedAt = GetTime()
 
+-- The library's own art (Media/): the path FK.Media builds and whether the client loads the files.
+FKDev.Test(ADDON, "the library's media path points into this addon", function(assert)
+	assert(FK.mediaPath:lower():find("interface\\addons\\fkgallery\\libs\\foreverkit\\media\\", 1, true), "mediaPath = " .. FK.mediaPath)
+end)
+
+-- Whether the art itself loads cannot be checked in code: SetTexture returns true even for a
+-- missing file (verified in game, step 13). Check it by eye: fk live run --shot with a theme set.
+
 FKDev.Test(ADDON, "every theme switches without errors and keeps the window on screen", function(assert)
 	local g = ns.gallery
 	assert(g and g.window:IsShown(), "gallery window open; hidden " .. tostring(hiddenBy))

@@ -22,7 +22,7 @@ notes, commit.** Research that the decisions rest on is in [`research/`](researc
 - [x] **Step 10** — Live testing: `fk link`, `FKDev` in-game addon, `fk live`, verified against the real client
 - [x] **Step 11** — Scaffold (`fk new`), `fk build`, three example addons of different kinds
 - [x] **Step 12** — Claude skills (with skill-creator), generated component catalog, UI/UX + feature guidelines
-- [ ] **Step 13** — Art: ForeverKit's own graphics (icon set, nine-slice frames, modern themes), drawn as code, real art in previews
+- [x] **Step 13** — Art: ForeverKit's own graphics (icon set, nine-slice frames, modern themes), drawn as code, real art in previews
 - [ ] **Step 14** — Layout kits beyond panels: journal, map canvas, rich text / wiki pages, minimap skinning, sectioned tracker
 - [ ] **Step 15** — Showcase addons in different styles: dungeon-journal style browser, world map viewer, minimap customiser, wiki/notes, quest-style tracker; skills and catalog updated
 - [ ] **Step 16** — Human operation guide, README, full QA pass, in-game checklist
@@ -472,3 +472,24 @@ columns, selection), `Tree` (collapsible, lazy), composite rows — `ToggleRow`,
 - Not done: description-trigger optimisation (skill-creator's run_loop) — do it in step 15 after
   the skills describe the layout kits.
 - Fixed on the way: FKGallery's menu used `text =` instead of `label =`.
+
+### Step 13 (2026-11-17) — verified in game
+- `art/build.py` (pycairo) draws 54 icons (64x64 white, tintable) and 6 nine-slice frames
+  (metal, soft, double, button, pill, glow; 64x64, 16 px corners) into
+  `framework/ForeverKit/Media/`, plus `Media/Icons.lua` (`FK.mediaIcons`) and a contact sheet
+  `.preview/art-sheet.png`. Deterministic; PNGs committed.
+- `FK.Media("Icons/cog")` → path inside wherever the library is embedded (found from
+  `debugstack()`, fallback `Interface\AddOns\<Addon>\Libs\ForeverKit`). Theme specs accept
+  `"media:Icons/x"` paths, `{ nineslice = "media:Frames/metal", size, color, bg, inset }`, and any
+  icon name of the set (`Theme.IconSpec` falls back to `FK.mediaIcons`, tinted "text");
+  `FK.Theme.MediaIconSet(tint)` gives a theme the whole set for its widget icons.
+- Themes `modern` (charcoal, metal edges, red buttons, gold) and `midnight` (blue-black glass,
+  rounded pills, violet accent); pixel/glass/parchment now use the icon set; vanilla keeps the
+  classic Blizzard art. Gallery and BagWarden layout tests cover all six themes.
+- Renderer draws addon PNGs exactly (data: URIs — file:// masks are blocked as cross-origin);
+  tinting through CSS masks. Emulator reports "texture file missing" for addon paths that do not
+  exist (`H.AddonFile`). Window close button keeps clear of rounded borders.
+- In game: the modern theme renders as in the preview (screenshot checked); media path resolves
+  inside the embedding addon; new PNGs load after `/reload`; `SetTexture` cannot detect missing
+  files; `C_Timer.After` rejects C functions (lost the midnight screenshot that way).
+- `/fkgallery theme <name> [page]` for previews and live runs.

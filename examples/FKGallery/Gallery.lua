@@ -124,6 +124,13 @@ FK:OnLogin(function()
 	tabs:SetPoint("TOPLEFT", 0, -(pick:GetHeight() + 8))
 	tabs:SetPoint("BOTTOMRIGHT")
 	ns.gallery = { window = win, tabs = tabs, theme = pick }
-	FK:Slash({ "/fkgallery" }, function() win:Toggle() end)
+	-- /fkgallery toggles; /fkgallery theme <name> [page] shows a theme and page (used by previews and FKDev runs)
+	FK:Slash({ "/fkgallery" }, function(msg)
+		local theme, page = msg:match("^theme%s+(%S+)%s*(%S*)")
+		if not theme then return win:Toggle() end
+		if FK.Theme.themes[theme] then FK.Theme:Set(theme) end
+		if page ~= "" then tabs:Select(page) end
+		win:Open()
+	end)
 	win:Open()
 end)
