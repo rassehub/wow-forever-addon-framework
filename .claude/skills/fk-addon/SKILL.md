@@ -14,8 +14,11 @@ everything declarative, and let the tools find problems before the player does.
 Before writing code, check the idea against [docs/guidelines/features.md](../../../docs/guidelines/features.md):
 combat data can be *shown* but not *computed on* (secret values), so rotation helpers, "warn when
 buff X drops", DPS maths are not buildable; damage meter, cooldown manager, raid frames are
-already in the client. If the brief needs one of those, say so and propose what can be built.
-If it needs quest/NPC/item facts or prices, read the `fk-gamedata` skill too.
+already in the client. If the brief needs one of those, stop before building: explain in plain
+words why it cannot work as asked, offer two or three buildable alternatives (say which you would
+pick and which depend on APIs not yet verified on Forever), and let the user choose. Building a
+substitute they did not ask for wastes their time and hides the limitation; the user prefers to
+decide. If the brief needs quest/NPC/item facts or prices, read the `fk-gamedata` skill too.
 
 ## 2. Pick the kind and scaffold
 
