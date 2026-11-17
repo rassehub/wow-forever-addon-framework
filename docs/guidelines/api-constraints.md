@@ -60,6 +60,18 @@ ForeverKit's own windows are not secure and work in combat.
   `C_Timer.After(1, function() Screenshot() end)`.
 - `debugstack()` names the running file's path (`Interface/AddOns/<Addon>/...`); `FK.Media`
   uses it to find the library wherever it is embedded.
+- The minimap (measured in game, step 14; `FK.MinimapSkin` follows all of this):
+  - It always renders as a square. `Minimap:SetSize(w, h)` with w ≠ h breaks the map, and a
+    clipping parent does not cut it. Rectangles are a square map under a band mask; addon PNGs
+    work as masks. Round mask: `Interface\Masks\CircleMaskScalable`; square: `WHITE8X8`.
+  - With `rotateMinimap` on, the client turns the whole masked square: only round maps can rotate.
+  - If part of the square is off screen, the client squeezes the map into the visible part: keep
+    the whole square on screen (a wide band cannot reach the screen edge).
+  - The map redraws only when the player moves; a zoom step and back redraws it at once.
+  - The client's rings (`MinimapCompassTexture`, and `MinimapCompassTextureUnderlay` while
+    rotating) fit only the default round map; the client resets their size. Textures have no
+    `OnShow`: keep them hidden by hooking `Show`/`SetShown`.
+  - Other addons' buttons (LibDBIcon) fade to alpha 0 when the mouse leaves the minimap.
 - Verified present (1.60.1): `WorldMapFrame.ScrollContainer.Child` and `OnMapChanged` at login,
   `AddonCompartmentFrame`, `SetOverrideBindingClick`, `TooltipDataProcessor`, `C_EncodingUtil`,
   `UiMapPoint` / `C_SuperTrack` / `C_Map.SetUserWaypoint`, `GetFileIDFromPath`, every texture

@@ -188,7 +188,7 @@ local PAGES = {
 		{ "Segmented", id = "shape", label = "Shape", value = "round", onChange = set("shape"),
 			items = { { value = "round", label = "Round" }, { value = "square", label = "Square" }, { value = "rect", label = "Rectangle" } } },
 		{ "Dropdown", id = "border", label = "Border", value = "none", onChange = set("border"), items = {
-			{ value = "none", label = "Game ring (round only)" }, { value = "thin", label = "Thin (modern)" }, { value = "metal", label = "Metal" },
+			{ value = "none", label = "Game ring (round, default size)" }, { value = "thin", label = "Thin (modern)" }, { value = "metal", label = "Metal" },
 			{ value = "soft", label = "Soft" }, { value = "double", label = "Double line" } } },
 		{ "Slider", id = "width", label = "Width", min = 100, max = 700, step = 2, value = 198, format = "%d", live = false, onChange = set("width") },
 		{ "Slider", id = "height", label = "Height (rectangle)", min = 100, max = 700, step = 2, value = 198, format = "%d", live = false, onChange = set("height") },
