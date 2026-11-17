@@ -7,7 +7,7 @@ test("gallery: every page in every theme lays out cleanly", function()
 	for _, theme in ipairs(ns.FK.Theme:Names()) do
 		ns.FK.Theme:Set(theme)
 		eq(g.theme:GetValue(), theme, "dropdown follows the theme")
-		for _, id in ipairs({ "controls", "choices", "rows", "collections", "display" }) do
+		for _, id in ipairs({ "controls", "choices", "rows", "collections", "journal", "display" }) do
 			g.tabs:Select(id)
 			H.Advance(0)
 			eq(H.LayoutIssues(g.window), {}, theme .. "/" .. id)

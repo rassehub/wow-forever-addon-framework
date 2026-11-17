@@ -18,6 +18,7 @@
 	<Script file="Themes\Midnight.lua"/>
 	<Script file="Widgets\Layout.lua"/>
 	<Script file="Widgets\Basic.lua"/>
+	<Script file="Widgets\Text.lua"/>
 	<Script file="Widgets\Slider.lua"/>
 	<Script file="Widgets\Input.lua"/>
 	<Script file="Widgets\Choice.lua"/>
@@ -26,6 +27,7 @@
 	<Script file="Widgets\Rows.lua"/>
 	<Script file="Widgets\Nav.lua"/>
 	<Script file="Widgets\Display.lua"/>
+	<Script file="Widgets\Journal.lua"/>
 	<Script file="Widgets\Options.lua"/>
 	<Script file="Features\Secret.lua"/>
 	<Script file="Features\Combat.lua"/>

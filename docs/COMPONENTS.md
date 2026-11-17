@@ -161,6 +161,11 @@ One-line text input. opts: label, value, placeholder, numeric, maxLetters, onCha
 Text input with a search icon and a clear button; reports while typing, debounced. opts: placeholder (default "Search"), value, delay (default 0.2s), onSearch(text).  
 <sub>[framework/ForeverKit/Widgets/Input.lua:83](../framework/ForeverKit/Widgets/Input.lua#L83)</sub>
 
+### Journal
+
+Encyclopedia layout in one widget: header with icon, title, subtitle and banner art, clickable breadcrumb, searchable tree navigation, section tabs, cached content pages (dungeon journals, bestiaries, codexes, wikis). opts: title, subtitle, icon (icon-set name or texture), banner (texture shown faintly behind the header), nodes (Tree nodes, may carry subtitle and icon), sections = list of { id, label } or function(node) -> list, render(page, node, sectionId) -> markup or nil (add widgets to the ScrollArea `page`), onLink(target, button) for links in markup, navWidth (default 210), search (default true), home (label of the breadcrumb root, default the title). Methods: SetNodes(nodes), Select(nodeOrValue, sectionId), GetSelected(), Refresh() (rebuild the current page).  
+<sub>[framework/ForeverKit/Widgets/Journal.lua:49](../framework/ForeverKit/Widgets/Journal.lua#L49)</sub>
+
 ### Stack
 
 Vertical list of children, each on its own line. opts: gap, padding.  
@@ -278,13 +283,13 @@ Sortable multi-column list (auction results, rosters, loot). opts: columns = { {
 
 ### Tree
 
-Collapsible hierarchy (journal categories, zone > quest lists). opts: nodes = { { label, icon, children = {...}, expanded, value, color } }, onSelect(node), onEnter(node, row), indent (default 14). Clicking a branch folds it; leaves are selected. Methods: SetNodes, ExpandAll, CollapseAll, GetSelected.  
+Collapsible hierarchy (journal categories, zone > quest lists). opts: nodes = { { label, icon (texture or a name from the icon set), children = {...}, expanded, value, color } }, onSelect(node), onEnter(node, row), indent (default 14), selectBranches (a branch is selected as well as unfolded: journals). Clicking a branch folds it; leaves are selected. Methods: SetNodes, Select(nodeOrValue) (unfolds its parents), ExpandAll, CollapseAll, GetSelected.  
 <sub>[framework/ForeverKit/Widgets/Scroll.lua:343](../framework/ForeverKit/Widgets/Scroll.lua#L343)</sub>
 
 ### TextArea
 
 Multi-line text input with scrolling (notes, import/export strings). opts: label, value, readOnly (select-and-copy only), onChange(text) when focus is lost.  
-<sub>[framework/ForeverKit/Widgets/Scroll.lua:420](../framework/ForeverKit/Widgets/Scroll.lua#L420)</sub>
+<sub>[framework/ForeverKit/Widgets/Scroll.lua:446](../framework/ForeverKit/Widgets/Scroll.lua#L446)</sub>
 
 ### Slider
 
@@ -300,6 +305,11 @@ Two thumbs on one track for a minimum and a maximum (level range, price range). 
 
 Compact whole-number input with - and + buttons, for small counts (rows, columns, stacks). For ranges wider than about 20 steps use Slider. opts: label, min, max, step, value, format, onChange(value).  
 <sub>[framework/ForeverKit/Widgets/Slider.lua:266](../framework/ForeverKit/Widgets/Slider.lua#L266)</sub>
+
+### RichText
+
+Formatted text from a small markup (# headings, paragraphs, - bullets, > notes, ---, ![size](texture) images, **emphasis**, [label](target) links, :icon: icons): wiki pages, journal text, help. opts: text, onLink(target, mouseButton), linkTooltip(target) -> text or {title, line}, gap. Methods: SetText(markup). Height follows the content; give it a width.  
+<sub>[framework/ForeverKit/Widgets/Text.lua:75](../framework/ForeverKit/Widgets/Text.lua#L75)</sub>
 
 ### Window
 

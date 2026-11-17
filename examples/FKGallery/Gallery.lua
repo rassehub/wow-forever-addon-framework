@@ -13,6 +13,30 @@ local function page(children, after)
 	end
 end
 
+-- Journal page: a small codex with original sample text, rendered from markup.
+local CODEX = {
+	{ label = "Dungeons", icon = "dungeon", subtitle = "Instances for a group of five", value = "dungeons", children = {
+		{ label = "The Deadmines", icon = "skull", value = "dm", subtitle = "Westfall  ·  levels 17-26" },
+		{ label = "The Stockade", icon = "lock", value = "stocks", subtitle = "Stormwind City  ·  levels 22-30" },
+	} },
+	{ label = "Professions", icon = "herb", value = "profs", children = {
+		{ label = "Herbalism", icon = "herb", value = "herb", subtitle = "Gathering" },
+		{ label = "Mining", icon = "ore", value = "mining", subtitle = "Gathering" },
+	} },
+}
+local function codexPage(_, node, section)
+	if node.children then
+		local lines = { "# " .. node.label, node.subtitle or "", "" }
+		for _, c in ipairs(node.children) do lines[#lines + 1] = ("- :%s: [%s](journal:%s)"):format(c.icon or "book", c.label, c.value) end
+		return table.concat(lines, "\n")
+	end
+	if section == "notes" then
+		return "## Notes\n> Example text: write your own findings here.\n- :star: Worth a visit\n- :clock: About 45 minutes"
+	end
+	return ("# %s\n%s\n\n## Overview\nA **sample entry** rendered with RichText. Links like [the category](journal:%s) jump inside the journal.\n\n- :pin: Entrance marked on the map\n- :chest: Several chests inside\n---\n![32](media:Icons/%s)"):format(
+		node.label, node.subtitle or "", (node.value == "dm" or node.value == "stocks") and "dungeons" or "profs", node.icon or "book")
+end
+
 local PAGES = {
 	{ id = "controls", label = "Controls", build = page({
 		{ "Heading", text = "Text" },
@@ -86,6 +110,12 @@ local PAGES = {
 		local ta = FK.TextArea(p, { label = "TextArea", value = "Multi-line notes.\nSecond line." , height = 70 })
 		ta:SetPoint("TOPLEFT", tree, "BOTTOMLEFT", 0, -10)
 		ta:SetPoint("RIGHT", p)
+	end },
+	{ id = "journal", label = "Journal", build = function(p)
+		ns.journal = FK.Journal(p, { points = { { "TOPLEFT" }, { "BOTTOMRIGHT" } }, title = "Codex", subtitle = "A sample journal", icon = "book",
+			nodes = CODEX, render = codexPage,
+			sections = function(node) if not node.children then return { { id = "overview", label = "Overview" }, { id = "notes", label = "Notes" } } end end })
+		ns.journal:Select("dm")
 	end },
 	{ id = "display", label = "Display", build = function(p)
 		local _, refs = FK.Build(p, { "ScrollArea", points = { { "TOPLEFT" }, { "BOTTOMRIGHT" } }, gap = 8, children = {

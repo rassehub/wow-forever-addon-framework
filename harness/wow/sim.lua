@@ -88,6 +88,31 @@ function H.Hover(f)
 	target(f, "Hover")
 end
 
+-- Clicks the hyperlink whose code contains `target` in a visible font string of `frame` (the
+-- frame that has SetHyperlinksEnabled), as the client does: OnHyperlinkClick(frame, link, text, button).
+function H.ClickLink(frame, target, button)
+	if not frame[0].hyperlinks then error("ClickLink: " .. H.debugname(frame) .. " does not have hyperlinks enabled", 2) end
+	local function search(f)
+		for _, r in ipairs(f[0].regions) do
+			if r[0].type == "FontString" and r:IsVisible() then
+				for link, text in tostring(r[0].text or ""):gmatch("|H(.-)|h(.-)|h") do
+					if link:find(target, 1, true) then return link, text end
+				end
+			end
+		end
+		for _, c in ipairs(f[0].children or {}) do
+			if c:IsVisible() and not c[0].hyperlinks then
+				local link, text = search(c)
+				if link then return link, text end
+			end
+		end
+	end
+	local link, text = search(frame)
+	if not link then error("ClickLink: no visible link containing " .. tostring(target) .. " in " .. H.debugname(frame), 2) end
+	H.run(frame, "OnHyperlinkClick", link, text, button or "LeftButton")
+	return link
+end
+
 function H.Click(f, button)
 	button = button or "LeftButton"
 	target(f, "Click")

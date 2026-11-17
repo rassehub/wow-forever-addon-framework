@@ -52,7 +52,7 @@ FKDev.Test(ADDON, "every theme switches without errors and keeps the window on s
 	local before = FK.Theme.name
 	for _, name in ipairs(FK.Theme:Names()) do
 		FK.Theme:Set(name)
-		for _, id in ipairs({ "controls", "choices", "rows", "collections", "display" }) do g.tabs:Select(id) end
+		for _, id in ipairs({ "controls", "choices", "rows", "collections", "journal", "display" }) do g.tabs:Select(id) end
 		local l, t = g.window:GetLeft(), g.window:GetTop()
 		assert(l and t and l >= 0 and t <= UIParent:GetTop() + 1, name .. ": window off screen")
 	end

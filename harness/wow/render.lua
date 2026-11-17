@@ -72,7 +72,21 @@ end
 -- WoW text escapes -> HTML
 local function markup(text)
 	text = esc(tostring(text))
-	text = text:gsub("|T.-|t", "<span class=inl></span>"):gsub("|A.-|a", "<span class=inl></span>")
+	text = text:gsub("|T(.-)|t", function(spec)
+		-- |Tpath:h:w:x:y:tw:th:l:r:t:b:r:g:b|t; the addon's own art is drawn (tinted), other art is a box
+		local f = {}
+		for part in (spec .. ":"):gmatch("(.-):") do f[#f + 1] = part end
+		local file, exists = H.AddonFile(f[1])
+		local size = tonumber(f[2]) or 0
+		size = size > 0 and size or 12
+		if not (exists and file:lower():find("%.png$")) then return "<span class=inl></span>" end
+		local r, g, b = tonumber(f[12]), tonumber(f[13]), tonumber(f[14])
+		local box = ("display:inline-block;width:%dpx;height:%dpx;vertical-align:-2px;"):format(size, size)
+		if r then
+			return ("<span style=\"%sbackground:rgb(%d,%d,%d);mask-image:%s;mask-size:100%% 100%%\"></span>"):format(box, r, g, b, dataUri(file))
+		end
+		return ("<span style=\"%sbackground-image:%s;background-size:100%% 100%%\"></span>"):format(box, dataUri(file))
+	end):gsub("|A.-|a", "<span class=inl></span>")
 	text = text:gsub("|H.-|h", ""):gsub("|h", ""):gsub("|n", "<br>")
 	local out, open = {}, 0
 	local pos = 1

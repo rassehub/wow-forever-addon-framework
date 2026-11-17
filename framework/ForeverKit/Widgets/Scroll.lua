@@ -340,13 +340,31 @@ FK.Define("Table", {
 	if opts.items then self:SetItems(opts.items) end
 end)
 
----@widget Tree  Collapsible hierarchy (journal categories, zone > quest lists). opts: nodes = { { label, icon, children = {...}, expanded, value, color } }, onSelect(node), onEnter(node, row), indent (default 14). Clicking a branch folds it; leaves are selected. Methods: SetNodes, ExpandAll, CollapseAll, GetSelected.
+---@widget Tree  Collapsible hierarchy (journal categories, zone > quest lists). opts: nodes = { { label, icon (texture or a name from the icon set), children = {...}, expanded, value, color } }, onSelect(node), onEnter(node, row), indent (default 14), selectBranches (a branch is selected as well as unfolded: journals). Clicking a branch folds it; leaves are selected. Methods: SetNodes, Select(nodeOrValue) (unfolds its parents), ExpandAll, CollapseAll, GetSelected.
 FK.Define("Tree", {
 	SetNodes = function(self, nodes)
 		self.nodes = nodes or {}
 		self:Flatten()
 	end,
 	GetSelected = function(self) return self.list:GetSelected() end,
+	-- Selects a node (or the node whose value equals v), unfolding its parents; silent.
+	Select = function(self, v)
+		local function find(nodes, parents)
+			for _, n in ipairs(nodes) do
+				if n == v or n.original == v or (v ~= nil and n.value == v) then return n, parents end
+				if n.children then
+					local hit, ps = find(n.children, { n, unpack(parents) })
+					if hit then return hit, ps end
+				end
+			end
+		end
+		local node, parents = find(self.nodes or {}, {})
+		if not node then return nil end
+		for _, p in ipairs(parents) do p.expanded = true end
+		self.list.selected = node
+		self:Flatten()
+		return node
+	end,
 	ExpandAll = function(self) self:SetExpanded(self.nodes, true) self:Flatten() end,
 	CollapseAll = function(self) self:SetExpanded(self.nodes, false) self:Flatten() end,
 	SetExpanded = function(self, nodes, expanded)
@@ -391,7 +409,9 @@ FK.Define("Tree", {
 			x = x + 14
 			row.icon:SetShown(node.icon ~= nil)
 			if node.icon then
-				row.icon:SetTexture(node.icon)
+				local named = type(node.icon) == "string" and FK.mediaIcons[node.icon]
+				row.icon:SetTexture(named and FK.Media("Icons/" .. node.icon) or node.icon)
+				if named then row.icon:SetVertexColor(Theme.Color(node.children and "heading" or "dim")) else row.icon:SetVertexColor(1, 1, 1) end
 				row.icon:SetSize(16, 16)
 				row.icon:ClearAllPoints()
 				row.icon:SetPoint("LEFT", x, 0)
@@ -403,9 +423,15 @@ FK.Define("Tree", {
 			row.text:SetText(node.label)
 		end,
 		onClick = function(node)
-			if node.children then
+			if node.children and not opts.selectBranches then
 				node.expanded = not node.expanded
 				self:Flatten()
+			elseif node.children then
+				-- a selected branch unfolds; clicking it again while selected folds it
+				node.expanded = not (self.list.selected == node and node.expanded)
+				self.list.selected = node
+				self:Flatten()
+				if opts.onSelect then opts.onSelect(node) end
 			else
 				self.list.selected = node
 				if opts.onSelect then opts.onSelect(node) end

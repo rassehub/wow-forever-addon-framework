@@ -766,6 +766,8 @@ function Frame:SetAttribute(k, v)
 end
 function Frame:GetAttribute(k) return self[0].attributes and self[0].attributes[k] end
 function Frame:SetClipsChildren(v) self[0].clips = v end
+function Frame:SetHyperlinksEnabled(v) self[0].hyperlinks = v and true or false end
+function Frame:GetHyperlinksEnabled() return self[0].hyperlinks == true end
 function Frame:DoesClipChildren() return self[0].clips == true end
 function Frame:SetHitRectInsets(l, r, t, b) self[0].hitInsets = { l, r, t, b } end
 function Frame:SetFlattensRenderLayers() end
