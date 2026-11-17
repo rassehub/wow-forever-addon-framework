@@ -131,12 +131,6 @@ local function buildHandles(o)
 		h:RegisterForDrag("LeftButton")
 		h.label = h:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 		h.label:SetPoint("CENTER")
-		h.grip = CreateFrame("Button", nil, h)
-		h.grip:SetSize(18, 18)
-		h.grip:SetPoint("BOTTOMRIGHT", -2, 2)
-		h.grip.icon = h.grip:CreateTexture(nil, "ARTWORK")
-		h.grip.icon:SetAllPoints()
-		h.grip.icon:SetTexture(FK.Media("Icons/grip"))
 		h:SetScript("OnDragStart", function()
 			Minimap:SetMovable(true)
 			Minimap:StartMoving()
@@ -148,36 +142,65 @@ local function buildHandles(o)
 			Skin.Apply(Skin.options)
 			Skin.Report()
 		end)
-		h.grip:RegisterForDrag("LeftButton")
-		h.grip:SetScript("OnDragStart", function()
-			local cx, cy = GetCursorPosition()
-			local o2 = Skin.options
-			h.sizing = { x = cx, y = cy, w = o2.width or 198, hh = o2.height or o2.width or 198 }
-		end)
-		h.grip:SetScript("OnUpdate", function()
-			local s = h.sizing
-			if not s then return end
-			local cx, cy = GetCursorPosition()
-			local es = UIParent:GetEffectiveScale() * (Skin.options.scale or 1)
-			local w = math.max(80, math.min(800, s.w + (cx - s.x) / es))
-			local hh = math.max(80, math.min(800, s.hh - (cy - s.y) / es))
-			local o2 = Skin.options
-			o2.width, o2.height = math.floor(w + 0.5), math.floor(hh + 0.5)
-			if o2.shape ~= "rect" then o2.height = o2.width end
-			Skin.Shape(o2)
-		end)
-		h.grip:SetScript("OnDragStop", function()
-			h.sizing = nil
-			Skin.Apply(Skin.options)
-			Skin.Report()
-		end)
+		-- a grip on each corner; dragging one resizes around the opposite corner, which stays put
+		h.grips = {}
+		local OPPOSITE = { TOPLEFT = "BOTTOMRIGHT", TOPRIGHT = "BOTTOMLEFT", BOTTOMLEFT = "TOPRIGHT", BOTTOMRIGHT = "TOPLEFT" }
+		local ROTATION = { BOTTOMRIGHT = 0, BOTTOMLEFT = -math.pi / 2, TOPLEFT = math.pi, TOPRIGHT = math.pi / 2 }
+		for corner, opposite in pairs(OPPOSITE) do
+			local g = CreateFrame("Button", nil, h)
+			g:SetSize(18, 18)
+			g:SetPoint(corner, corner:find("LEFT") and 2 or -2, corner:find("TOP") and -2 or 2)
+			g.icon = g:CreateTexture(nil, "ARTWORK")
+			g.icon:SetAllPoints()
+			g.icon:SetTexture(FK.Media("Icons/grip"))
+			g.icon:SetRotation(ROTATION[corner])
+			g:RegisterForDrag("LeftButton")
+			g:SetScript("OnDragStart", function()
+				-- the opposite corner in UIParent units
+				local v, k = Skin.view, Skin.view:GetEffectiveScale() / UIParent:GetEffectiveScale()
+				local ox = (opposite:find("LEFT") and v:GetLeft() or v:GetRight()) * k
+				local oy = (opposite:find("TOP") and v:GetTop() or v:GetBottom()) * k
+				local ax = (corner:find("LEFT") and v:GetLeft() or v:GetRight()) * k
+				local ay = (corner:find("TOP") and v:GetTop() or v:GetBottom()) * k
+				local ui = UIParent:GetEffectiveScale()
+				local cx, cy = GetCursorPosition()
+				-- where on the grip it was taken: the corner keeps that distance to the cursor
+				g.sizing = { ox = ox, oy = oy, dx = cx / ui - ax, dy = cy / ui - ay }
+			end)
+			g:SetScript("OnUpdate", function()
+				local sz = g.sizing
+				if not sz then return end
+				local ui = UIParent:GetEffectiveScale()
+				local cx, cy = GetCursorPosition()
+				cx, cy = cx / ui - sz.dx, cy / ui - sz.dy
+				local o2 = Skin.options
+				local toMap = ui / Minimap:GetEffectiveScale() -- UIParent units -> the map's own units
+				local w = math.max(80, math.min(900, math.abs(cx - sz.ox) * toMap))
+				local hh = math.max(80, math.min(900, math.abs(cy - sz.oy) * toMap))
+				if o2.shape ~= "rect" then w = math.max(w, hh) hh = w end
+				-- the far corner follows the cursor (clamped), the centre sits between the two corners
+				local fx = sz.ox + (cx >= sz.ox and 1 or -1) * w / toMap
+				local fy = sz.oy + (cy >= sz.oy and 1 or -1) * hh / toMap
+				o2.width, o2.height = math.floor(w + 0.5), math.floor(hh + 0.5)
+				o2.position = { point = "CENTER", relPoint = "BOTTOMLEFT", x = (sz.ox + fx) / 2 * toMap, y = (sz.oy + fy) / 2 * toMap }
+				Skin.Shape(o2)
+				Minimap:ClearAllPoints()
+				Minimap:SetPoint("CENTER", UIParent, "BOTTOMLEFT", o2.position.x, o2.position.y)
+			end)
+			g:SetScript("OnDragStop", function()
+				g.sizing = nil
+				Skin.Apply(Skin.options)
+				Skin.Report()
+			end)
+			h.grips[corner] = g
+		end
 		Skin.handle = h
 	end
 	local c = { Theme.Color("accent") }
 	Theme.Paint(h, { nineslice = "media:Frames/thin", size = 6, color = c, bg = { c[1], c[2], c[3], 0.12 } })
 	Theme.Font(h.label, "normal", "accent")
-	h.label:SetText(FK.L["Drag to move  ·  corner to resize"])
-	h.grip.icon:SetVertexColor(c[1], c[2], c[3])
+	h.label:SetText(FK.L["Drag to move  ·  corners to resize"])
+	for _, g in pairs(h.grips) do g.icon:SetVertexColor(c[1], c[2], c[3]) end
 	h:ClearAllPoints()
 	h:SetAllPoints(Skin.view)
 	h:Show()

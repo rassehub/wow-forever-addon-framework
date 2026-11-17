@@ -239,7 +239,11 @@ FK:OnLogin(function()
 		if shape == "drawer" then return FK.MinimapSkin.drawer and FK.MinimapSkin.drawer.flyout:Show() end
 		if shape == "navigator" then ns.gallery.tabs:Select("minimap") return ns.navigator() end
 		if shape then
-			return FK.MinimapSkin.Apply({ shape = shape, border = border ~= "" and border or "metal", drawer = true, hide = { "ring" } })
+			-- /fkgallery minimap <shape> <border> [width height] [rotate] [center]
+			local w, h = msg:match("(%d+)%s+(%d+)")
+			return FK.MinimapSkin.Apply({ shape = shape, border = border ~= "" and border or "metal", drawer = true, hide = { "ring" },
+				width = tonumber(w), height = tonumber(h), rotate = msg:find("rotate") and true or false,
+				position = msg:find("center") and { point = "CENTER", relPoint = "CENTER", x = 0, y = -120 } or nil })
 		end
 		local theme, page = msg:match("^theme%s+(%S+)%s*(%S*)")
 		if not theme then return win:Toggle() end
