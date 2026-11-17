@@ -267,7 +267,7 @@ function H.Install()
 	local mm = H.CreateFrame("Frame", "Minimap", cluster)
 	mm:SetSize(140, 140)
 	mm:SetPoint("TOPRIGHT", ui, "TOPRIGHT", -20, -30)
-	mm.zoom, mm.mask = 0, "Interface\\CharacterFrame\\TempPortraitAlphaMask"
+	mm.zoom, mm.mask = 0, "Textures\\MinimapMask"
 	function mm:SetMaskTexture(path) self.mask = path end
 	function mm:GetMaskTexture() return self.mask end
 	function mm:SetZoom(z) self.zoom = math.max(0, math.min(5, z)) end

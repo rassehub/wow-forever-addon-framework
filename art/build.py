@@ -368,6 +368,13 @@ def masks():
             c.set_source_rgba(1, 1, 1, 1)
             c.fill()
             surf.write_to_png(str(out / f"rect-{kind}{n}.png"))
+    # a hard-edged circle (the client's CircleMaskScalable fades over several pixels)
+    surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, MASK, MASK)
+    c = cairo.Context(surf)
+    c.arc(MASK / 2, MASK / 2, MASK / 2 - 1, 0, 6.2832)
+    c.set_source_rgba(1, 1, 1, 1)
+    c.fill()
+    surf.write_to_png(str(out / "circle.png"))
 
 
 # Rings: round borders drawn over a round minimap (one texture, not a nine-slice).

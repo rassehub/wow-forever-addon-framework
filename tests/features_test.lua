@@ -257,11 +257,12 @@ test("minimap skin: square with a border, hidden pieces, wheel zoom, button draw
 	eq(H.LayoutIssues(d.flyout), {})
 	-- applying again (e.g. a settings change) does not lose the buttons
 	FK.MinimapSkin.Apply({ shape = "round", border = "soft", drawer = true })
-	eq(Minimap:GetMaskTexture(), "Interface\\Masks\\CircleMaskScalable")
+	ok(Minimap:GetMaskTexture():find("Masks\\circle.png", 1, true), "own hard-edged circle, not the client's soft one")
 	ok(GetMinimapShape == nil)
 	ok(GameTimeFrame:IsShown(), "pieces not listed any more are shown again")
 	eq(a:GetParent(), d.flyout)
 	FK.MinimapSkin.Reset()
+	eq(Minimap:GetMaskTexture(), "Textures\\MinimapMask", "reset gives back the client's own mask")
 	eq(a:GetParent(), Minimap)
 	eq(select(4, a:GetPoint(1)), -70, "buttons go back where they were")
 	ok(MinimapCompassTexture:IsShown())

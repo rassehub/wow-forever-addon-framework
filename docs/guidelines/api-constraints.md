@@ -63,7 +63,7 @@ ForeverKit's own windows are not secure and work in combat.
 - The minimap (measured in game, step 14; `FK.MinimapSkin` follows all of this):
   - It always renders as a square. `Minimap:SetSize(w, h)` with w ≠ h breaks the map, and a
     clipping parent does not cut it. Rectangles are a square map under a band mask; addon PNGs
-    work as masks. Round mask: `Interface\Masks\CircleMaskScalable`; square: `WHITE8X8`.
+    work as masks. Round: `Interface\Masks\CircleMaskScalable` exists but fades over several pixels (blurry under a border line), so the skin uses its own hard-edged `Masks/circle`; reset gives back the mask `GetMaskTexture()` reported before skinning. Square: `WHITE8X8`.
   - With `rotateMinimap` on, the client turns the whole masked square: only round maps can rotate.
   - If part of the square is off screen, the client squeezes the map into the visible part: keep
     the whole square on screen (a wide band cannot reach the screen edge).

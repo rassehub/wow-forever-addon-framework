@@ -7,7 +7,9 @@ local Skin = { hidden = {}, moved = {} }
 FK.MinimapSkin = Skin
 local OWN = {} -- frames this module puts on the minimap (never culled)
 
-local ROUND_MASK = "Interface\\Masks\\CircleMaskScalable" -- the client's own (verified in game)
+-- ours: hard edge at any size (the client's CircleMaskScalable fades over several pixels, seen in game)
+local ROUND_MASK = FK.Media("Masks/circle")
+local DEFAULT_MASK = "Textures\\MinimapMask" -- the client's, when GetMaskTexture tells nothing
 local SQUARE_MASK = "Interface\\Buttons\\WHITE8X8"
 local PIECES = {
 	-- the classic ring, and the underlay the client adds while the map rotates (seen in game)
@@ -444,7 +446,7 @@ function Skin.Apply(o)
 	if not Skin.original then
 		local pts = {}
 		for i = 1, Minimap:GetNumPoints() do pts[i] = { Minimap:GetPoint(i) } end
-		Skin.original = { width = Minimap:GetWidth(), points = pts, rotate = C_CVar and (C_CVar.GetCVar("rotateMinimap") or "0") }
+		Skin.original = { width = Minimap:GetWidth(), points = pts, mask = Minimap:GetMaskTexture() or DEFAULT_MASK, rotate = C_CVar and (C_CVar.GetCVar("rotateMinimap") or "0") }
 		measurePieces()
 	end
 	local shape = o.shape or "round"
@@ -494,7 +496,7 @@ end
 -- Back to the client's own minimap. internal: between two Apply calls (keeps the options).
 function Skin.Reset(internal)
 	local orig = Skin.original
-	Minimap:SetMaskTexture(ROUND_MASK)
+	if orig then Minimap:SetMaskTexture(orig.mask) end
 	GetMinimapShape = nil
 	if Skin.border then Skin.border:Hide() end
 	if Skin.ring then Skin.ring:Hide() end
