@@ -70,14 +70,25 @@ local function applySkin()
 		end })
 end
 local function set(key) return function(v) skin[key] = v applySkin() end end
-function ns.navigator()
-	skin.shape, skin.border, skin.width, skin.height, skin.rotate, skin.drawer = "rect", "thin", 460, 230, true, true
+-- north-up rectangle (a rectangle cannot rotate: the client turns the whole masked square)
+function ns.navigator(round)
+	if round then
+		skin.shape, skin.border, skin.width, skin.height, skin.rotate, skin.drawer = "round", "thin", 300, 300, true, true
+		skin.hide = { header = true }
+		skin.position = { point = "BOTTOMRIGHT", relPoint = "BOTTOMRIGHT", x = -60, y = 140 }
+		applySkin()
+		local r = minimapRefs
+		r.shape:SetValue("round") r.border:SetValue("thin") r.width:SetValue(300) r.height:SetValue(300)
+		r.rotate:SetValue(true) r.drawer:SetValue(true) r.hide:SetValue(skin.hide)
+		return
+	end
+	skin.shape, skin.border, skin.width, skin.height, skin.rotate, skin.drawer = "rect", "thin", 460, 230, false, true
 	skin.hide = { header = true, ring = true }
 	skin.position = { point = "BOTTOM", relPoint = "BOTTOM", x = 0, y = 150 }
 	applySkin()
 	local r = minimapRefs
 	r.shape:SetValue("rect") r.border:SetValue("thin") r.width:SetValue(460) r.height:SetValue(230)
-	r.rotate:SetValue(true) r.drawer:SetValue(true) r.hide:SetValue(skin.hide)
+	r.rotate:SetValue(false) r.drawer:SetValue(true) r.hide:SetValue(skin.hide)
 end
 
 local PAGES = {
@@ -170,19 +181,20 @@ local PAGES = {
 	{ id = "minimap", label = "Minimap", build = page({
 		{ "Label", role = "small", color = "dim", text = "Changes the game's minimap live (FK.MinimapSkin). Nothing is saved: /reload or Reset puts it back." },
 		{ "Row", children = {
-			{ "Button", text = "Navigator preset", onClick = function() ns.navigator() end },
+			{ "Button", text = "Navigator", onClick = function() ns.navigator() end },
+			{ "Button", text = "Round navigator", onClick = function() ns.navigator(true) end },
 			{ "Button", text = "Reset", onClick = function() FK.MinimapSkin.Reset() skin.position = nil end },
 		} },
 		{ "Segmented", id = "shape", label = "Shape", value = "round", onChange = set("shape"),
 			items = { { value = "round", label = "Round" }, { value = "square", label = "Square" }, { value = "rect", label = "Rectangle" } } },
 		{ "Dropdown", id = "border", label = "Border", value = "none", onChange = set("border"), items = {
-			{ value = "none", label = "Game default" }, { value = "thin", label = "Thin (modern)" }, { value = "metal", label = "Metal" },
+			{ value = "none", label = "Game ring (round only)" }, { value = "thin", label = "Thin (modern)" }, { value = "metal", label = "Metal" },
 			{ value = "soft", label = "Soft" }, { value = "double", label = "Double line" } } },
 		{ "Slider", id = "width", label = "Width", min = 100, max = 700, step = 2, value = 198, format = "%d", live = false, onChange = set("width") },
 		{ "Slider", id = "height", label = "Height (rectangle)", min = 100, max = 700, step = 2, value = 198, format = "%d", live = false, onChange = set("height") },
 		{ "Slider", label = "Scale (whole cluster)", min = 0.6, max = 2, step = 0.05, percent = true, value = 1, live = false, onChange = set("scale") },
 		{ "Toggle", id = "unlock", label = "Unlock: drag the map to move it, its corner to resize", value = false, onChange = set("unlock") },
-		{ "Toggle", id = "rotate", label = "Rotate the map with the player", value = false, onChange = set("rotate") },
+		{ "Toggle", id = "rotate", label = "Rotate the map with the player (round maps only)", value = false, onChange = set("rotate") },
 		{ "Toggle", label = "Zoom with the mouse wheel", value = true, onChange = set("wheelZoom") },
 		{ "Toggle", id = "drawer", label = "Collect addon buttons into a drawer", value = false, onChange = set("drawer") },
 		{ "CheckList", id = "hide", label = "Hide", height = 130, value = {}, onChange = function(v) skin.hide = v applySkin() end, items = {
@@ -237,7 +249,8 @@ FK:OnLogin(function()
 		local shape, border = msg:match("^minimap%s+(%S+)%s*(%S*)")
 		if shape == "reset" then return FK.MinimapSkin.Reset() end
 		if shape == "drawer" then return FK.MinimapSkin.drawer and FK.MinimapSkin.drawer.flyout:Show() end
-		if shape == "navigator" then ns.gallery.tabs:Select("minimap") return ns.navigator() end
+		if shape == "navigator" then ns.gallery.tabs:Select("minimap") return ns.navigator(msg:find("round") ~= nil) end
+		if shape == "unlock" then skin.unlock = true return applySkin() end
 		if shape then
 			-- /fkgallery minimap <shape> <border> [width height] [rotate] [center]
 			local w, h = msg:match("(%d+)%s+(%d+)")

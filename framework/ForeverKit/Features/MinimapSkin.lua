@@ -2,7 +2,7 @@ local _, ns = ...
 local FK = ns.FK
 local Theme = FK.Theme
 
----@module MinimapSkin  Re-styles and re-shapes the game's minimap (minimap and navigator addons). FK.MinimapSkin.Apply({ shape = "round"|"square"|"rect", width, height (rect: any ratio 1:4..4:1; square/round use width), border = "thin"|"metal"|"soft"|"double"|"none" (rings when round), borderColor (theme colour or {r,g,b}), scale (whole cluster), position = { point, relPoint, x, y } (detaches the map from the cluster, e.g. bottom centre for a navigator), rotate (the map turns with you), wheelZoom (default true), hide = { "ring", "header", "tracking", "calendar", "compartment" }, drawer = true (other addons' minimap buttons in a flyout list with names), unlock = true (drag handle and resize grip; report changes to onLayout({ position, width, height }) and save them) }). Calling Apply again re-applies; FK.MinimapSkin.Reset() restores everything. Nothing is saved by the module. How the client renders the minimap was measured in game (step 14): it is always square, so rectangles are a square map under a band mask.
+---@module MinimapSkin  Re-styles and re-shapes the game's minimap (minimap and navigator addons). FK.MinimapSkin.Apply({ shape = "round"|"square"|"rect", width, height (rect: any ratio 1:4..4:1; square/round use width), border = "thin"|"metal"|"soft"|"double"|"none" (rings when round; "none" keeps the client's ring, scaled with the map, on round maps only), borderColor (theme colour or {r,g,b}), scale (whole cluster), position = { point, relPoint, x, y } (detaches the map from the cluster, e.g. bottom centre for a navigator), rotate (the map turns with you; round only: the client turns a masked square as a whole, seen in game), wheelZoom (default true), hide = { "ring", "header", "tracking", "calendar", "compartment" }, drawer = true (other addons' minimap buttons in a flyout list with names), unlock = true (drag handle and resize grip; report changes to onLayout({ position, width, height }) and save them) }). Calling Apply again re-applies; FK.MinimapSkin.Reset() restores everything. Nothing is saved by the module. How the client renders the minimap was measured in game (step 14): it is always square, so rectangles are a square map under a band mask.
 local Skin = { hidden = {}, moved = {} }
 FK.MinimapSkin = Skin
 
@@ -21,10 +21,13 @@ local function hidePiece(name)
 	if f and f.Hide and Skin.hidden[f] == nil then
 		Skin.hidden[f] = f:IsShown()
 		f:Hide()
-		-- the client shows some pieces again on its own events: keep them hidden while skinned
-		if f.HookScript and not f.fkSkinHooked then
+		-- the client shows some pieces again on its own events (the compass ring when rotating,
+		-- seen in game): keep them hidden while skinned. Textures have no OnShow: hook Show itself.
+		if not f.fkSkinHooked then
 			f.fkSkinHooked = true
-			f:HookScript("OnShow", function(self) if Skin.hidden[self] ~= nil then self:Hide() end end)
+			local function again(self) if Skin.hidden[self] ~= nil and self:IsShown() then self:Hide() end end
+			hooksecurefunc(f, "Show", again)
+			hooksecurefunc(f, "SetShown", again)
 		end
 	end
 end
@@ -221,6 +224,18 @@ function Skin.Shape(o)
 	elseif shape == "round" then mask = ROUND_MASK end
 	Minimap:SetSize(side, side)
 	Minimap:SetMaskTexture(mask)
+	-- the classic ring (on MinimapBackdrop) follows the size when the map stays round
+	local bd, orig = MinimapBackdrop, Skin.original
+	if bd and orig.backdrop then
+		local f = side / orig.width
+		bd:ClearAllPoints()
+		bd:SetPoint("CENTER", Minimap, "CENTER", orig.backdrop.dx * f, orig.backdrop.dy * f)
+		bd:SetSize(orig.backdrop.w * f, orig.backdrop.h * f)
+	end
+	-- the client redraws the map only when the player moves; a zoom nudge redraws it now
+	local z = Minimap:GetZoom()
+	Minimap:SetZoom(z > 0 and z - 1 or z + 1)
+	Minimap:SetZoom(z)
 	-- the visible part of the map: what borders, the drawer and the handle frame
 	local view = Skin.view
 	if not view then
@@ -278,8 +293,22 @@ function Skin.Apply(o)
 		local pts = {}
 		for i = 1, Minimap:GetNumPoints() do pts[i] = { Minimap:GetPoint(i) } end
 		Skin.original = { width = Minimap:GetWidth(), points = pts, rotate = C_CVar and (C_CVar.GetCVar("rotateMinimap") or "0") }
+		local bd = MinimapBackdrop
+		if bd and bd:GetWidth() > 0 and Minimap:GetCenter() then
+			local bpts = {}
+			for i = 1, bd:GetNumPoints() do bpts[i] = { bd:GetPoint(i) } end
+			local mx, my = Minimap:GetCenter()
+			local bx, by = bd:GetCenter()
+			local k = bd:GetEffectiveScale() / Minimap:GetEffectiveScale()
+			Skin.original.backdrop = { points = bpts, w = bd:GetWidth(), h = bd:GetHeight(), dx = bx * k - mx, dy = by * k - my }
+		end
 	end
 	local shape = o.shape or "round"
+	if o.rotate and shape ~= "round" then
+		-- the client rotates the whole masked square (seen in game): only a round map can turn
+		FK:Warn("minimap-rotate", "only a round minimap can rotate; rotation is off for " .. shape)
+		o.rotate = false
+	end
 	-- the convention minimap button libraries read to place buttons on the edge
 	GetMinimapShape = shape ~= "round" and function() return "SQUARE" end or nil
 	Skin.Shape(o)
@@ -338,6 +367,12 @@ function Skin.Reset(internal)
 		Minimap:ClearAllPoints()
 		for _, p in ipairs(orig.points) do Minimap:SetPoint(unpack(p)) end
 		if orig.rotate and C_CVar then C_CVar.SetCVar("rotateMinimap", orig.rotate) end
+		local bd, b = MinimapBackdrop, orig.backdrop
+		if bd and b then
+			bd:ClearAllPoints()
+			for _, p in ipairs(b.points) do bd:SetPoint(unpack(p)) end
+			bd:SetSize(b.w, b.h)
+		end
 		Skin.original = nil
 	end
 	if not internal then Skin.options = nil end
