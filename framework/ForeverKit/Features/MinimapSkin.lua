@@ -5,6 +5,7 @@ local Theme = FK.Theme
 ---@module MinimapSkin  Re-styles and re-shapes the game's minimap (minimap and navigator addons). FK.MinimapSkin.Apply({ shape = "round"|"square"|"rect", width, height (rect: any ratio 1:4..4:1; square/round use width), border = "thin"|"metal"|"soft"|"double"|"none" (rings when round; "none" keeps the client's ring, which only fits a round map at the default size: otherwise there is no border), borderColor (theme colour or {r,g,b}), scale (whole cluster), position = { point, relPoint, x, y } (detaches the map from the cluster, e.g. bottom centre for a navigator), rotate (the map turns with you; round only: the client turns a masked square as a whole, seen in game), wheelZoom (default true), hide = { "ring", "header", "tracking", "calendar", "compartment" }, drawer = true (other addons' minimap buttons in a flyout list with names), unlock = true (drag handle and resize grip; report changes to onLayout({ position, width, height }) and save them) }). Calling Apply again re-applies; FK.MinimapSkin.Reset() restores everything. Nothing is saved by the module. How the client renders the minimap was measured in game (step 14): it is always square, so rectangles are a square map under a band mask.
 local Skin = { hidden = {}, moved = {} }
 FK.MinimapSkin = Skin
+local OWN = {} -- frames this module puts on the minimap (never culled)
 
 local ROUND_MASK = "Interface\\Masks\\CircleMaskScalable" -- the client's own (verified in game)
 local SQUARE_MASK = "Interface\\Buttons\\WHITE8X8"
@@ -67,6 +68,7 @@ local function buildDrawer(color)
 	local d = Skin.drawer
 	if not d then
 		d = CreateFrame("Button", nil, Minimap)
+		OWN[d] = true
 		d:SetSize(20, 20)
 		d:SetFrameLevel(Minimap:GetFrameLevel() + 12)
 		d.icon = d:CreateTexture(nil, "ARTWORK")
@@ -214,12 +216,55 @@ local function buildHandles(o)
 	h:ClearAllPoints()
 	h:SetAllPoints(Skin.view)
 	h:Show()
+	-- the whole square the client draws: why a wide rectangle cannot go closer to a screen edge
+	local sq = h.square
+	if not sq then
+		sq = FK.Frame("Frame", h)
+		sq:SetFrameStrata("DIALOG")
+		sq.label = sq:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		sq.label:SetPoint("TOP", 0, -4)
+		h.square = sq
+	end
+	sq:ClearAllPoints()
+	sq:SetAllPoints(Minimap)
+	Theme.Paint(sq, { nineslice = "media:Frames/thin", size = 6, color = { c[1], c[2], c[3], 0.35 } })
+	Theme.Font(sq.label, "small", "dim")
+	sq.label:SetText(o.shape == "rect" and FK.L["The game draws the map as this square: it has to stay on screen"] or "")
+	sq:SetShown(o.shape == "rect")
 end
 
 function Skin.Report()
 	local o = Skin.options
 	if o and o.onLayout then o.onLayout({ position = o.position, width = o.width, height = o.height }) end
 end
+
+-- Pins of other addons (Questie, gathering addons...) are frames placed over the whole square map;
+-- the band mask only cuts the map picture. While the map is a rectangle, pins whose centre is outside
+-- the band are made invisible (alpha 0) and given back their alpha when the band reaches them again.
+local function cullPins()
+	local view = Skin.view
+	local l, r, t, b = view:GetLeft(), view:GetRight(), view:GetTop(), view:GetBottom()
+	if not l then return end
+	for _, f in ipairs({ Minimap:GetChildren() }) do
+		if not OWN[f] and f:IsShown() then
+			local x, y = f:GetCenter()
+			local outside = x and (x < l or x > r or y < b or y > t)
+			if outside and not f.fkCulled then
+				f.fkCulled = f:GetAlpha()
+				f:SetAlpha(0)
+			elseif not outside and f.fkCulled then
+				f:SetAlpha(f.fkCulled)
+				f.fkCulled = nil
+			end
+		end
+	end
+end
+local function uncullPins()
+	for _, f in ipairs({ Minimap:GetChildren() }) do
+		if f.fkCulled then f:SetAlpha(f.fkCulled) f.fkCulled = nil end
+	end
+end
+Skin.CullPins = cullPins
 
 -- Keeps the whole square map on screen. The client always renders the minimap as a square; when
 -- part of that square is off screen it squeezes the map into what is left while our border stays
@@ -259,7 +304,16 @@ function Skin.Shape(o)
 	if not view then
 		view = CreateFrame("Frame", nil, Minimap)
 		Skin.view = view
+		OWN[view] = true
+		local elapsed = 0
+		view:SetScript("OnUpdate", function(_, dt)
+			elapsed = elapsed + dt
+			if elapsed < 0.1 then return end
+			elapsed = 0
+			if Skin.options and Skin.options.shape == "rect" then cullPins() end
+		end)
 	end
+	if shape ~= "rect" then uncullPins() end
 	view:ClearAllPoints()
 	view:SetPoint("CENTER", Minimap, "CENTER")
 	view:SetSize(vw, vh)
@@ -275,6 +329,7 @@ function Skin.Shape(o)
 		if shape == "round" then
 			if not r then
 				r = CreateFrame("Frame", nil, Minimap)
+				OWN[r] = true
 				r:SetFrameLevel(Minimap:GetFrameLevel() + 10)
 				r.tex = r:CreateTexture(nil, "OVERLAY")
 				r.tex:SetAllPoints()
@@ -290,6 +345,7 @@ function Skin.Shape(o)
 		else
 			if not b then
 				b = CreateFrame("Frame", nil, Minimap)
+				OWN[b] = true
 				b:SetFrameLevel(Minimap:GetFrameLevel() + 10)
 				Skin.border = b
 			end
@@ -366,6 +422,7 @@ function Skin.Reset(internal)
 		Skin.hidden[f] = nil
 		if wasShown then f:Show() end
 	end
+	uncullPins()
 	for _, f in ipairs(Skin.moved) do
 		f:SetParent(f.fkSkinParent)
 		f:ClearAllPoints()

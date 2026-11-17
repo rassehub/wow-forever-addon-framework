@@ -72,6 +72,8 @@ ForeverKit's own windows are not secure and work in combat.
     rotating) fit only the default round map; the client resets their size. Textures have no
     `OnShow`: keep them hidden by hooking `Show`/`SetShown`.
   - Other addons' buttons (LibDBIcon) fade to alpha 0 when the mouse leaves the minimap.
+  - Pins of other addons (Questie, gathering) are frames over the whole square: a band mask does not
+    hide them; `FK.MinimapSkin` hides those outside the band.
 - Verified present (1.60.1): `WorldMapFrame.ScrollContainer.Child` and `OnMapChanged` at login,
   `AddonCompartmentFrame`, `SetOverrideBindingClick`, `TooltipDataProcessor`, `C_EncodingUtil`,
   `UiMapPoint` / `C_SuperTrack` / `C_Map.SetUserWaypoint`, `GetFileIDFromPath`, every texture
