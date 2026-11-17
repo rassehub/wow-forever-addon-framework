@@ -23,7 +23,7 @@ notes, commit.** Research that the decisions rest on is in [`research/`](researc
 - [x] **Step 11** — Scaffold (`fk new`), `fk build`, three example addons of different kinds
 - [x] **Step 12** — Claude skills (with skill-creator), generated component catalog, UI/UX + feature guidelines
 - [x] **Step 13** — Art: ForeverKit's own graphics (icon set, nine-slice frames, modern themes), drawn as code, real art in previews
-- [ ] **Step 14** — Layout kits beyond panels: journal, map canvas, rich text / wiki pages, minimap skinning, sectioned tracker
+- [x] **Step 14** — Layout kits beyond panels: journal, map canvas, rich text / wiki pages, minimap skinning, sectioned tracker
 - [ ] **Step 15** — Showcase addons in different styles: dungeon-journal style browser, world map viewer, minimap customiser, wiki/notes, quest-style tracker; skills and catalog updated
 - [ ] **Step 16** — Human operation guide, README, full QA pass, in-game checklist
 
@@ -493,3 +493,27 @@ columns, selection), `Tree` (collapsible, lazy), composite rows — `ToggleRow`,
   inside the embedding addon; new PNGs load after `/reload`; `SetTexture` cannot detect missing
   files; `C_Timer.After` rejects C functions (lost the midnight screenshot that way).
 - `/fkgallery theme <name> [page]` for previews and live runs.
+
+### Step 14 (2026-11-17) — verified in game (minimap with automatic screenshots)
+- Kits: `RichText` (markup → font strings/textures, `fk:` links, `:icon:`, images; blocks hang
+  from each other so the client stacks real text heights, `FitHeight` next frame — fixed overlap
+  seen in midnight), `Journal` (header, link breadcrumb, searchable `Tree`, section `Tabs`, pages
+  cached per node), `MapCanvas` (tiles, drag pan, wheel zoom around the cursor, fixed-size pins,
+  coords), `SectionTracker` (collapsible sections, counters, saved state). Tests in
+  `tests/kits_test.lua` across themes; gallery pages journal, map, minimap, tracker.
+- `FK.MinimapSkin` (Features/MinimapSkin.lua): round / square / rect (any ratio) shapes, borders
+  and rings from Media, size and scale, wheel zoom, hide clutter, button drawer with names,
+  unlock handles (drag; corner grips resize around the opposite corner), pins of other addons
+  culled outside a rect's band, cluster pieces (zone name, clock, buttons) follow a moved map,
+  `Reset` back to the client's look. Navigator presets in the gallery.
+- Learned in game (all in `docs/guidelines/api-constraints.md`): the minimap always renders a
+  square — rect shapes are a band mask (`Masks/rect-*`) over it, the client squeezes it when the
+  square is partly off screen (`KeepOnScreen`), so wide maps cannot reach the screen edge; only
+  round maps rotate; the map redraws only on movement (zoom nudge); the client resets its ring
+  sizes (rings only at default size); LibDBIcon fades and Questie re-sets pin alpha (alpha hooks);
+  `CircleMaskScalable` has a soft edge — own hard `Masks/circle` is used, also on reset, because
+  the client has no `Minimap:GetMaskTexture` and `Textures\MinimapMask` is not a file (blanked the
+  map). The emulator must not offer APIs the client lacks (GetMaskTexture removed).
+- Experiments that take screenshots (`tools/experiments/minimap-*.lua`, `fk live shot`) replaced
+  asking the user to describe what they see.
+- Not done: persisting the skin (the step-15 minimap customiser does it through `onLayout`).
