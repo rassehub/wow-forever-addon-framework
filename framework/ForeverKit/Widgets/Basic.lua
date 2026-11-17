@@ -104,7 +104,7 @@ FK.Define("IconButton", {
 			Theme.PaintState(self.button, T.surface.button, Theme.State(self))
 		end
 		local icon = self.opts.icon
-		if T.icon[icon] then
+		if T.icon[icon] or FK.mediaIcons[icon] then -- theme glyph, or any icon of the library's set
 			self.tex:Hide()
 			self.glyph:Show()
 			self.glyph.iconName = icon

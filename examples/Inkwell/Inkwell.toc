@@ -1,0 +1,11 @@
+## Interface: 16001
+## Title: Inkwell
+## Notes: A personal wiki: pages in a simple markup, links between pages, folders, search and history. /ink
+## Version: 0.1.0
+## SavedVariables: InkwellDB
+## IconTexture: Interface\Icons\INV_Misc_Book_09
+## AddonCompartmentFunc: Inkwell_OnCompartmentClick
+## OptionalDeps: FKDev
+
+Libs\ForeverKit\ForeverKit.xml
+Main.lua
