@@ -269,7 +269,7 @@ function H.Install()
 	mm:SetPoint("TOPRIGHT", ui, "TOPRIGHT", -20, -30)
 	mm.zoom, mm.mask = 0, "Textures\\MinimapMask"
 	function mm:SetMaskTexture(path) self.mask = path end
-	function mm:GetMaskTexture() return self.mask end
+	-- no GetMaskTexture: the client does not have it (seen in game); tests read mm.mask
 	function mm:SetZoom(z) self.zoom = math.max(0, math.min(5, z)) end
 	function mm:GetZoom() return self.zoom end
 	function mm:GetZoomLevels() return 6 end
