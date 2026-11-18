@@ -38,11 +38,13 @@ Full list with sources: [docs/guidelines/api-constraints.md](../../../docs/guide
 
 5. **No globals.** `local ADDON, ns = ...; local FK = ns.FK`. Only the names the client looks up
    are global: SavedVariables, slash command tables (`FK:Slash` makes them), the
-   `## AddonCompartmentFunc` function, override-binding buttons (`FK.Keybind` makes them).
+   `## AddonCompartmentFunc` function, override-binding buttons (`FK.Keybind` makes them), the
+   Key Bindings dispatcher (`FK.Binding` makes it; `tools/fk sync` writes `Bindings.xml`).
    Tests check `H.LeakedGlobals`.
 
 6. **Pure Lua, primitives.** No XML frames and no Blizzard templates except `BackdropTemplate`;
-   use ForeverKit widgets (they are themed and emulated).
+   use ForeverKit widgets (they are themed and emulated). Context menus are `FK.Menu` (ticks,
+   radios, submenus; a builder like `MenuUtil`'s for ported code), not `MenuUtil`.
 
 ## When unsure whether an API exists on Forever
 

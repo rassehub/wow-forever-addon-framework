@@ -28,7 +28,7 @@ function H.Reset()
 	for _, k in ipairs(HIDDEN) do rawset(G, k, nil) end
 	H.gen, H.serial, H.frames, H.events, H.timers = 0, 0, {}, {}, {}
 	H.clock, H.mouseX, H.mouseY, H.hover, H.focus, H.moving = 1000, 0, 0, nil, nil, nil
-	H.log, H.modifiers, H.inCombat, H.forceSecrets, H.loggedIn = {}, {}, false, false, false
+	H.log, H.modifiers, H.inCombat, H.forceSecrets, H.loggedIn, H.linked = {}, {}, false, false, false, nil
 	H.addons, H.loadOrder, H.saved, H.warnings, H.undefined = {}, {}, {}, {}, {}
 	H.eventHooks, H.popup, H.colorPicker, H.reloadRequested, H.compartment = nil, nil, nil, nil, nil
 	H.addonPaths = H.addonPaths or {}
@@ -59,6 +59,8 @@ function H.LeakedGlobals(addonName)
 	local declared, out = {}, {}
 	for _, v in ipairs(addon.saved) do declared[v] = true end
 	for _, v in ipairs(addon.savedPerChar) do declared[v] = true end
+	-- the functions a Bindings.xml calls by name are meant to be global
+	for fn in (H.ReadFile(addon.dir .. "/Bindings.xml") or ""):gmatch("([%w_]+)%s*%(") do declared[fn] = true end
 	for k in pairs(addon.globals) do
 		local v = rawget(G, k)
 		local isFrame = type(v) == "table" and type(rawget(v, 0)) == "table"

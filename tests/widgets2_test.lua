@@ -241,6 +241,59 @@ test("context menu opens at the cursor and runs the item", function()
 	ok(not FK.Popup.frame:IsShown())
 end)
 
+test("context menu: ticks and radios stay open and redraw; submenus cascade and close together", function()
+	local FK = H.Start(KIT).FK
+	local show, size, moved = { bags = true }, "small", nil
+	FK.Menu({
+		{ header = "Columns" },
+		{ label = "Bags", checked = function() return show.bags end, onClick = function() show.bags = not show.bags end },
+		{ label = "Small", radio = true, checked = function() return size == "small" end, onClick = function() size = "small" end },
+		{ label = "Large", radio = true, checked = function() return size == "large" end, onClick = function() size = "large" end },
+		{ label = "Move to", children = function()
+			return { { label = "Bank", onClick = function() moved = "bank" end },
+				{ label = "Deeper", children = { { label = "Vault", onClick = function() moved = "vault" end } } } }
+		end },
+	})
+	local function row(level, label)
+		for _, r in ipairs(level.rows) do if r:IsShown() and r.item.label == label then return r end end
+	end
+	ok(row(FK.Popup, "Bags").check:IsShown())
+	FK.Popup:Pick("Bags")
+	eq(show.bags, false)
+	ok(FK.Popup.frame:IsShown(), "a tick keeps the menu open")
+	ok(not row(FK.Popup, "Bags").check:IsShown(), "and the tick is redrawn")
+	FK.Popup:Pick("Large")
+	eq(size, "large")
+	ok(row(FK.Popup, "Large").check:IsShown() and not row(FK.Popup, "Small").check:IsShown())
+	H.Hover(row(FK.Popup, "Move to"))
+	ok(FK.Popup.child.frame:IsShown(), "hovering a submenu row opens it")
+	ok(FK.Popup.child.frame:GetLeft() >= FK.Popup.frame:GetRight(), "beside the menu")
+	H.Hover(row(FK.Popup, "Bags"))
+	ok(not FK.Popup.child.frame:IsShown(), "another row closes it")
+	FK.Popup:Pick("Move to", "Deeper", "Vault")
+	eq(moved, "vault")
+	ok(not FK.Popup.frame:IsShown() and not FK.Popup.child.child.frame:IsVisible(), "a pick closes every level")
+end)
+
+test("context menu: built MenuUtil style, a tick box can carry its own submenu", function()
+	local FK = H.Start(KIT).FK
+	local on, picked = { herbs = true }, nil
+	FK.Menu(function(m)
+		m:Header("Nodes")
+		local herbs = m:Check("Herbs", function() return on.herbs end, function() on.herbs = not on.herbs end)
+		herbs:Item("Peacebloom", function() picked = "peacebloom" end)
+		m:Item("More"):Radio("Big", function() return false end, function() picked = "big" end)
+	end)
+	FK.Popup:Pick("Herbs")
+	eq(on.herbs, false) -- clicking the box ticks it...
+	ok(FK.Popup.frame:IsShown())
+	FK.Popup:Pick("Herbs", "Peacebloom") -- ...and its submenu still opens
+	eq(picked, "peacebloom")
+	FK.Menu(function(m) m:Item("More"):Radio("Big", function() return false end, function() picked = "big" end) end)
+	FK.Popup:Pick("More", "Big")
+	eq(picked, "big")
+end)
+
 test("toasts stack and expire", function()
 	local FK = H.Start(KIT).FK
 	local a = FK.Toast("First")

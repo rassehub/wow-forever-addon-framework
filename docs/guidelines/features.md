@@ -14,6 +14,8 @@ for signatures.
 | Talking to the same addon on other players | `FK:Comm(prefix, fn)` → `comm:Send(table, channel)` (split, rate-limited, parsed safely) |
 | Minimap button + compartment | `FK.MinimapButton`, `FK.Compartment` / `## AddonCompartmentFunc` |
 | A key that runs a function | `FK.Keybind(key, fn)` (override binding; applies after combat) |
+| An action in the game's Key Bindings menu | `FK.Binding(name, label, fn)`; `tools/fk sync` writes the `Bindings.xml` the client needs |
+| Right-click menus (ticks, radio choices, submenus) | `FK.Menu(items)` or built MenuUtil style: `FK.Menu(function(m) m:Check(...) end)` |
 | Movable HUD frames | `FK.Movers.Add(frame, { label, saved })`, unlock/lock commands |
 | World map icons, waypoints | `FK.MapPins.Add(mapID, x, y, opts)`, `FK.MapPins.Waypoint` |
 | Something protected while in combat (show secure frames, bindings) | `FK:AfterCombat(fn, key)` |

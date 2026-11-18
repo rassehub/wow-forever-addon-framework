@@ -148,7 +148,7 @@ function FK.ReloadPrompt(reason)
 		buttons = { { text = FK.L["Reload"], onClick = function() C_UI.Reload() end }, { text = FK.L["Later"] } } })
 end
 
----@module Menu  Context menu at the cursor: FK.Menu({ { label = "Delete", onClick = fn }, { divider = true }, { header = "Move to" }, { label = "Bank", onClick = fn, disabled = true } }). Typical trigger: a row's right-click.
+---@module Menu  Context menu at the cursor: FK.Menu({ { label = "Delete", onClick = fn }, { divider = true }, { header = "Move to" }, { label = "Bank", onClick = fn, disabled = true } }, anchor). Ticks: { label, checked = bool | fn(item), onClick } (the menu stays open and redraws); radio buttons: add radio = true; submenus: { label, children = items | fn() } open beside the row on hover or click, as deep as needed. items (and children) may be a function, evaluated when the menu opens: it returns the list, or builds it MenuUtil style on the builder it receives: m:Header(text), m:Divider(), m:Item(label, onClick), m:Check(label, checked, onClick), m:Radio(label, checked, onClick), each returning a builder for that entry's submenu. Tests: FK.Popup:Pick("Move to", "Bank") follows the path. Typical trigger: a row's right-click.
 function FK.Menu(items, anchor)
 	FK.Popup:Open(anchor or UIParent, items, { atCursor = anchor == nil })
 end

@@ -42,3 +42,6 @@ end)
 
 SLASH_PLAIN1 = "/plain"
 SlashCmdList.PLAIN = function() f:SetShown(not f:IsShown()) end
+
+local Redraw
+function Redraw() count:SetText("") end

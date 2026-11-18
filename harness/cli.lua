@@ -1,6 +1,6 @@
 -- Used by `fk tree` and `fk preview`:
 --   lua harness/cli.lua (tree|html) ADDON_DIR [--do LUA] [--theme NAME] [--out FILE] [--full]
---       [--addons-path DIR]... [--textures]
+--       [--addons-path DIR]... [--dep OPTIONAL_DEP]... [--textures]
 -- Loads the addon, logs in, runs the --do snippet (it sees H and ns), then prints the frame
 -- tree with layout issues, or writes the HTML render.
 
@@ -16,6 +16,7 @@ while arg[i] do
 	elseif a == "--theme" then i = i + 1; opts.theme = arg[i]
 	elseif a == "--out" then i = i + 1; opts.out = arg[i]
 	elseif a == "--addons-path" then i = i + 1; table.insert(H.addonPaths, arg[i])
+	elseif a == "--dep" then i = i + 1; H.loadOptionalDeps = H.loadOptionalDeps or {}; H.loadOptionalDeps[arg[i]] = true
 	elseif a == "--full" then opts.full = true
 	elseif a == "--textures" then opts.textures = true
 	else stderr:write("unknown argument " .. a .. "\n") exit(2) end

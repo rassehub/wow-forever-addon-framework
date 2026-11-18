@@ -79,6 +79,23 @@ test("db: migration runs once with the stored version", function()
 	eq(KitTestDB.version, 2)
 end)
 
+test("db: an unversioned saved variable migrates from 0, a new one not at all", function()
+	H.saved.KitTestDB = { distance = 30 } -- an addon's own flat table, before it used FK:NewDB
+	local FK = H.LoadAddon(KIT).FK
+	local froms = {}
+	local migrate = function(sv, from)
+		froms[#froms + 1] = from
+		sv.profiles, sv.distance = { Default = { range = sv.distance } }, nil
+	end
+	local db = FK:NewDB("KitTestDB", { profile = { range = 40 } }, { version = 1, migrate = migrate })
+	eq(db.profile.range, 30)
+	eq(KitTestDB.distance, nil)
+	H.saved.KitTestDB = nil
+	FK = H.LoadAddon(KIT).FK
+	FK:NewDB("KitTestDB", { profile = { range = 40 } }, { version = 1, migrate = migrate })
+	eq(froms, { 0 })
+end)
+
 test("db: reading before load explains itself", function()
 	local ns = H.LoadAddon(KIT)
 	local FK = ns.FK

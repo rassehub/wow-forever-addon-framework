@@ -7,11 +7,45 @@ local Theme = FK.Theme
 --
 -- `items` is an ordered list. An item is a string (value and label at once) or a table:
 --   { value = "raid", label = "Raid", icon = texture, color = {r,g,b}, disabled = true,
---     tooltip = "...", }   also { header = "Title" } and { divider = true }
+--     tooltip = "...", checked = bool | fn(item) (a tick; the list stays open when clicked),
+--     radio = true (a round mark instead of a tick), children = items (a submenu) }
+--   also { header = "Title" } and { divider = true }
 -- `items` may be a function returning that list, evaluated each time the list opens.
 
+-- Menus can also be built the way the client's MenuUtil builds them: a function receives a
+-- builder; every Add* returns a builder for that entry's submenu.
+--   FK.Menu(function(m)
+--       m:Header("Columns")
+--       m:Check("Bags", function() return show.bags end, function() show.bags = not show.bags end)
+--       local move = m:Item("Move to")              -- an entry that only opens a submenu
+--       move:Item("Bank", function() ... end)
+--   end)
+local Builder = {}
+Builder.__index = Builder
+function Builder:List()
+	if not self.list then
+		self.item.children = self.item.children or {}
+		self.list = self.item.children
+	end
+	return self.list
+end
+function Builder:Add(item)
+	local list = self:List()
+	list[#list + 1] = item
+	return setmetatable({ item = item }, Builder)
+end
+function Builder:Header(text) return self:Add({ header = text }) end
+function Builder:Divider() return self:Add({ divider = true }) end
+function Builder:Item(label, onClick) return self:Add({ label = label, onClick = onClick }) end
+function Builder:Check(label, checked, onClick) return self:Add({ label = label, checked = checked, onClick = onClick }) end
+function Builder:Radio(label, checked, onClick) return self:Add({ label = label, radio = true, checked = checked, onClick = onClick }) end
+
 local function resolveItems(items)
-	if type(items) == "function" then items = items() end
+	if type(items) == "function" then
+		local builder = setmetatable({ list = {} }, Builder)
+		local returned = items(builder) -- a list, or nothing when it used the builder
+		items = type(returned) == "table" and returned or builder.list
+	end
 	local out = {}
 	for i, item in ipairs(items or {}) do
 		if type(item) ~= "table" then item = { value = item, label = tostring(item) } end
@@ -37,86 +71,148 @@ local function warnIfNumeric(kind, items)
 end
 
 ---------------------------------------------------------------------------------------------
--- Popup list (one per addon, reused)
+-- Popup list (one per addon, reused). FK.Popup is the first level; an item with children
+-- opens the next level beside it (FK.Popup.child), and so on.
 ---------------------------------------------------------------------------------------------
 
-local Popup = { rows = {}, offset = 0 }
+local Level = {}
+Level.__index = Level
+local Popup = setmetatable({ rows = {}, offset = 0, depth = 1 }, Level)
+Popup.root = Popup
 FK.Popup = Popup
 
-local function createPopup()
-	local catcher = CreateFrame("Button", nil, UIParent)
-	catcher:SetAllPoints(UIParent)
-	catcher:SetFrameStrata("FULLSCREEN_DIALOG")
-	catcher:RegisterForClicks("AnyUp")
-	catcher:SetScript("OnClick", function() Popup:Close() end)
-	catcher:Hide()
-	local f = FK.Frame("Frame", catcher, ADDON .. "FKPopup")
+-- A ticked state: item.checked is a value or a function called each time the list draws.
+local function isChecked(level, item)
+	if item.checked ~= nil then
+		if type(item.checked) == "function" then return item.checked(item) and true or false end
+		return item.checked and true or false
+	end
+	local o = level.opts
+	return o.isChecked and not item.header and not item.divider and o.isChecked(item) and true or false
+end
+local function checkable(level, item) return item.checked ~= nil or (level.opts.isChecked ~= nil and not item.header and not item.divider) end
+local function inert(item) return item.header or item.divider or item.disabled end
+
+function Level:Create()
+	local root = self.root
+	if not root.catcher then
+		local catcher = CreateFrame("Button", nil, UIParent)
+		catcher:SetAllPoints(UIParent)
+		catcher:SetFrameStrata("FULLSCREEN_DIALOG")
+		catcher:RegisterForClicks("AnyUp")
+		catcher:SetScript("OnClick", function() root:Close() end)
+		catcher:Hide()
+		root.catcher = catcher
+	end
+	-- deeper levels sit on the level before them, so closing one closes everything after it
+	local parentFrame = self.parent and self.parent.frame or root.catcher
+	local f = FK.Frame("Frame", parentFrame, self == root and (ADDON .. "FKPopup") or nil)
 	f:SetFrameStrata("FULLSCREEN_DIALOG")
-	f:SetFrameLevel(catcher:GetFrameLevel() + 5)
+	f:SetFrameLevel(parentFrame:GetFrameLevel() + 5)
 	f:SetClampedToScreen(true)
 	f:EnableMouse(true)
 	f:EnableMouseWheel(true)
-	f:SetScript("OnMouseWheel", function(_, delta) Popup:Scroll(-delta * 3) end)
-	f:SetScript("OnHide", function() catcher:Hide() end)
-	tinsert(UISpecialFrames, ADDON .. "FKPopup") -- Escape closes it
+	f:SetScript("OnMouseWheel", function(_, delta) self:Scroll(-delta * 3) end)
+	if self == root then
+		f:SetScript("OnHide", function() root.catcher:Hide() end)
+		tinsert(UISpecialFrames, ADDON .. "FKPopup") -- Escape closes it
+	end
 	f.more = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 	f.more:SetPoint("BOTTOM", 0, 4)
-	Popup.frame, Popup.catcher = f, catcher
+	self.frame = f
 end
 
-local function createRow(i)
-	local f = Popup.frame
-	local row = CreateFrame("Button", nil, f)
+function Level:CreateRow()
+	local row = CreateFrame("Button", nil, self.frame)
 	row.hl = row:CreateTexture(nil, "BACKGROUND")
 	row.hl:SetAllPoints()
 	row.hl:Hide()
 	row.check = row:CreateTexture(nil, "ARTWORK")
-	row.check:SetPoint("LEFT", 4, 0)
+	row.check:SetPoint("LEFT", 5, 0)
 	row.icon = row:CreateTexture(nil, "ARTWORK")
 	row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 	row.text:SetJustifyH("LEFT")
 	row.text:SetWordWrap(false)
+	row.arrow = Theme.Icon(row, "arrowRight", 10)
+	row.arrow:SetPoint("RIGHT", -5, 0)
 	row.line = row:CreateTexture(nil, "ARTWORK")
 	row.line:SetHeight(1)
 	row.line:SetPoint("LEFT", 4, 0)
 	row.line:SetPoint("RIGHT", -4, 0)
-	row:SetScript("OnEnter", function(self)
-		local item = self.item
-		if item.header or item.divider or item.disabled then return end
-		self.hl:Show()
+	row:SetScript("OnEnter", function(r)
+		local item = r.item
+		if inert(item) then return self:CloseChild() end
+		r.hl:Show()
+		if item.children then self:OpenChild(r) else self:CloseChild() end
 		if item.tooltip then
-			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:SetOwner(r, "ANCHOR_RIGHT")
 			GameTooltip:SetText(item.tooltip, nil, nil, nil, nil, true)
 			GameTooltip:Show()
 		end
 	end)
-	row:SetScript("OnLeave", function(self)
-		self.hl:Hide()
+	row:SetScript("OnLeave", function(r)
+		if not (self.child and self.child.from == r and self.child.frame:IsShown()) then r.hl:Hide() end
 		GameTooltip:Hide()
 	end)
-	row:SetScript("OnClick", function(self)
-		local item = self.item
-		if item.header or item.divider or item.disabled then return end
+	row:SetScript("OnClick", function(r)
+		local item = r.item
+		if inert(item) then return end
+		-- a row that only opens a submenu; a tick box with a submenu still ticks
+		if item.children and item.checked == nil then return self:OpenChild(r) end
 		FK.Sound("click")
-		local o = Popup.opts
-		if not (o.keepOpen or item.keepOpen) then Popup:Close() end
+		local o = self.opts
+		-- ticking a box or a radio leaves the menu open, as the client's menus do
+		if not (o.keepOpen or item.keepOpen or item.checked ~= nil) then self.root:Close() end
 		if item.onClick then item.onClick(item) end
 		if o.onPick then o.onPick(item) end
-		if Popup.frame:IsShown() then Popup:Render() end
+		for level in self.root:Levels() do
+			if level.frame:IsShown() then level:Render() end
+		end
 	end)
 	return row
 end
 
-function Popup:Render()
+-- The open levels, first to last.
+function Level:Levels()
+	local level, started = nil, false
+	return function()
+		if started then level = level and level.child else level, started = self.root, true end
+		if level and level.frame and level.frame:IsShown() then return level end
+	end
+end
+
+function Level:OpenChild(row)
+	if not self.child then
+		self.child = setmetatable({ rows = {}, offset = 0, parent = self, root = self.root, depth = self.depth + 1 }, Level)
+	end
+	local child = self.child
+	if child.from == row and child.frame and child.frame:IsShown() then return end
+	child:Open(row, row.item.children, { submenu = true })
+	child.from = row
+	for _, r in ipairs(self.rows) do r.hl:SetShown(r == row) end
+end
+
+function Level:CloseChild()
+	local child = self.child
+	if child and child.frame and child.frame:IsShown() then
+		child.frame:Hide()
+		child.from = nil
+		for _, r in ipairs(self.rows) do r.hl:Hide() end
+	end
+end
+
+function Level:Render()
 	local T, o, items = Theme.current, self.opts, self.items
 	local rowH, maxRows = T.metric.row, o.maxRows or 12
 	local visible = math.min(#items, maxRows)
 	self.offset = FK.Clamp(self.offset, 0, math.max(0, #items - maxRows))
+	local anyCheck = o.isChecked ~= nil
+	for _, item in ipairs(items) do anyCheck = anyCheck or item.checked ~= nil end
 	for i = 1, math.max(visible, #self.rows) do
 		local row = self.rows[i]
 		local item = i <= visible and items[self.offset + i]
 		if item then
-			row = row or createRow(i)
+			row = row or self:CreateRow()
 			self.rows[i] = row
 			row.item = item
 			row:ClearAllPoints()
@@ -126,12 +222,14 @@ function Popup:Render()
 			Theme.Texture(row.hl, T.surface.row.hover)
 			row.line:SetShown(item.divider == true)
 			row.line:SetColorTexture(Theme.Color("divider"))
-			local checked = o.isChecked and not item.header and not item.divider and o.isChecked(item)
-			row.check:SetShown(checked and true or false)
-			local mark = T.surface.checkMark
-			row.check:SetSize(10, 10)
+			local checked = checkable(self, item) and isChecked(self, item)
+			row.check:SetShown(checked)
+			local mark = item.radio and T.surface.radioMark or T.surface.checkMark
+			row.check:SetSize(item.radio and 8 or 10, item.radio and 8 or 10)
 			Theme.Texture(row.check, mark)
-			local x = o.isChecked and 20 or 6
+			row.arrow:SetShown(item.children ~= nil)
+			row.arrow:Restyle()
+			local x = anyCheck and 20 or 6
 			row.icon:SetShown(item.icon ~= nil)
 			if item.icon then
 				row.icon:SetTexture(item.icon)
@@ -141,7 +239,7 @@ function Popup:Render()
 			end
 			row.text:ClearAllPoints()
 			row.text:SetPoint("LEFT", x, 0)
-			row.text:SetPoint("RIGHT", -6, 0)
+			row.text:SetPoint("RIGHT", item.children and -18 or -6, 0)
 			Theme.Font(row.text, item.header and "heading" or "normal", item.disabled and "disabled" or nil)
 			if item.color and not item.disabled then row.text:SetTextColor(item.color[1], item.color[2], item.color[3]) end
 			row.text:SetText(item.divider and "" or item.header or item.label)
@@ -158,15 +256,17 @@ function Popup:Render()
 	self.frame:SetHeight(visible * rowH + 6 + (more and 14 or 0))
 end
 
-function Popup:Scroll(delta)
+function Level:Scroll(delta)
 	self.offset = self.offset + delta
+	self:CloseChild()
 	self:Render()
 end
 
--- FK.Popup:Open(anchor, items, { onPick = fn(item), isChecked = fn(item), keepOpen, width, maxRows, point })
-function Popup:Open(anchor, items, opts)
-	if not self.frame then createPopup() end
+-- FK.Popup:Open(anchor, items, { onPick = fn(item), isChecked = fn(item), keepOpen, width, maxRows, atCursor })
+function Level:Open(anchor, items, opts)
+	if not self.frame then self:Create() end
 	opts = opts or {}
+	self:CloseChild()
 	self.items, self.opts, self.anchor, self.offset = resolveItems(items), opts, anchor, 0
 	local f = self.frame
 	Theme.Paint(f, Theme.current.surface.menu)
@@ -175,39 +275,48 @@ function Popup:Open(anchor, items, opts)
 		local probe = f.more
 		for _, item in ipairs(self.items) do
 			probe:SetText(item.header or item.label or "")
-			width = math.max(width, probe:GetStringWidth() * 1.25 + 40 + (item.icon and 20 or 0))
+			width = math.max(width, probe:GetStringWidth() * 1.25 + 40 + (item.icon and 20 or 0) + (item.children and 14 or 0))
 		end
-		width = math.max(width, anchor and anchor.GetWidth and anchor:GetWidth() or 0, 100)
+		width = math.max(width, not opts.submenu and anchor and anchor.GetWidth and anchor:GetWidth() or 0, 100)
 	end
 	f:SetWidth(width)
 	f:ClearAllPoints()
-	if opts.atCursor then
+	if opts.submenu then
+		f:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 4, 3)
+	elseif opts.atCursor then
 		local x, y = GetCursorPosition()
 		local scale = UIParent:GetEffectiveScale()
 		f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x / scale, y / scale)
 	else
 		f:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -2)
 	end
-	self.catcher:Show()
+	if self == self.root then self.catcher:Show() end
 	f:Show()
 	self:Render()
 end
 
-function Popup:Close()
-	if self.frame then self.frame:Hide() end
-	self.anchor = nil
+function Level:Close()
+	local root = self.root
+	if root.frame then root.frame:Hide() end
+	root.anchor = nil
 end
 
-function Popup:IsOpenFor(anchor) return self.frame ~= nil and self.frame:IsShown() and self.anchor == anchor end
+function Level:IsOpenFor(anchor) return self.frame ~= nil and self.frame:IsShown() and self.anchor == anchor end
 
--- Test and automation helper: picks the visible item with this label.
-function Popup:Pick(label)
+-- Test and automation helper: picks the visible item with this label. More labels follow a
+-- path through submenus: FK.Popup:Pick("Move to", "Bank").
+function Level:Pick(label, ...)
 	for i, item in ipairs(self.items or {}) do
 		if item.label == label then
 			self.offset = FK.Clamp(i - 1, 0, math.max(0, #self.items - (self.opts.maxRows or 12)))
 			self:Render()
 			for _, row in ipairs(self.rows) do
-				if row:IsShown() and row.item == item then return row:Click() end
+				if row:IsShown() and row.item == item then
+					if select("#", ...) == 0 then return row:Click() end
+					if not item.children then error("FK.Popup:Pick: " .. tostring(label) .. " has no submenu", 2) end
+					self:OpenChild(row)
+					return self.child:Pick(...)
+				end
 			end
 		end
 	end

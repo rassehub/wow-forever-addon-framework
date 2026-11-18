@@ -61,6 +61,22 @@ loadFile = function(path, name, ns)
 	chunk(name, ns)
 end
 
+-- Presses a key bound in the game's Key Bindings menu: runs the body of <Binding name="name">
+-- from a loaded addon's Bindings.xml, as the client does.
+function H.RunBinding(name)
+	for _, addon in pairs(H.addons) do
+		local xml = read(addon.dir .. "/Bindings.xml")
+		for attrs, body in (xml or ""):gmatch("<Binding%s(.-)>(.-)</Binding>") do
+			if attrs:match('name="([^"]+)"') == name then
+				local chunk, err = loadstring_(body, "@" .. addon.dir .. "/Bindings.xml")
+				if not chunk then error(err, 2) end
+				return chunk()
+			end
+		end
+	end
+	error("no Bindings.xml of a loaded addon has the binding " .. name, 2)
+end
+
 local function findAddon(name)
 	for _, dir in ipairs(H.addonPaths) do
 		local path = dir .. "/" .. name
@@ -113,7 +129,9 @@ function H.LoadAddon(dir)
 		H.LoadAddon(depDir)
 	end
 	for _, dep in ipairs(split(meta.OptionalDeps)) do
-		local depDir = H.loadOptionalDeps and findAddon(dep)
+		-- H.loadOptionalDeps: true for all, or { [name] = true } for the ones asked for
+		local wanted = H.loadOptionalDeps == true or (type(H.loadOptionalDeps) == "table" and H.loadOptionalDeps[dep])
+		local depDir = wanted and findAddon(dep)
 		if depDir then H.LoadAddon(depDir) end
 	end
 

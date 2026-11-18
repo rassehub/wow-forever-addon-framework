@@ -44,7 +44,7 @@ local function scrollBar(owner, onScroll)
 	return bar
 end
 
----@widget ScrollArea  Scrolling container for content taller than its space (long settings pages). Children stack vertically: area:Add(widget). opts: gap, padding. Needs a height (opts.height or two anchors).
+---@widget ScrollArea  Scrolling container for content taller than its space (long settings pages). Children stack vertically: area:Add(widget). opts: gap, padding. Needs a height (opts.height or two anchors). FK.ScrollBar(owner, onScroll(offset)) is the themed bar alone, for a hand-made ScrollFrame: bar:Set(total, visible, offset), bar:Restyle().
 FK.Define("ScrollArea", {
 	Add = function(self, widget) return self.content:Add(widget) end,
 	Clear = function(self) self.content:Clear() end,

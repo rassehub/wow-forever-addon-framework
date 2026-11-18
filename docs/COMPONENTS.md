@@ -9,7 +9,7 @@ Namespace, events, saved settings, timers, slash commands, locale, utilities, th
 
 ### DB
 
-Saved settings: ns.db = FK:NewDB("MyAddonDB", { profile = {...}, global = {...}, char = {...} }, { version, migrate(sv, from) }); declare MyAddonDB in ## SavedVariables. db.profile/global/char from FK:OnLoad on. db:Get(path), db:Set(path, value), db:OnChange(path, fn(value, path)), db:Reset(path); profiles: GetProfile, Profiles, SetProfile, CopyProfile, DeleteProfile; db:Export() / db:Import(text) (parsed, never executed). Values equal to defaults are not saved.  
+Saved settings: ns.db = FK:NewDB("MyAddonDB", { profile = {...}, global = {...}, char = {...} }, { version, migrate(sv, from) }) (from is 0 for data saved before the addon used FK:NewDB, so an existing addon can convert its old SavedVariable; never called for a new, empty one); declare MyAddonDB in ## SavedVariables. db.profile/global/char from FK:OnLoad on. db:Get(path), db:Set(path, value), db:OnChange(path, fn(value, path)), db:Reset(path); profiles: GetProfile, Profiles, SetProfile, CopyProfile, DeleteProfile; db:Export() / db:Import(text) (parsed, never executed). Values equal to defaults are not saved.  
 <sub>[framework/ForeverKit/Core/DB.lua:4](../framework/ForeverKit/Core/DB.lua#L4)</sub>
 
 ### Events
@@ -104,32 +104,32 @@ Filled bar with centred text. opts: min, max, value, text or format (string or f
 ### Dropdown
 
 Pick one of several named options. For numbers use Slider. opts: label, items, value, placeholder, onChange(value). Methods: SetItems(items).  
-<sub>[framework/ForeverKit/Widgets/Choice.lua:253](../framework/ForeverKit/Widgets/Choice.lua#L253)</sub>
+<sub>[framework/ForeverKit/Widgets/Choice.lua:362](../framework/ForeverKit/Widgets/Choice.lua#L362)</sub>
 
 ### MultiDropdown
 
 Pick any number of named options; the list stays open while ticking. opts: label, items, value = { [itemValue] = true }, placeholder, onChange(valueSet).  
-<sub>[framework/ForeverKit/Widgets/Choice.lua:292](../framework/ForeverKit/Widgets/Choice.lua#L292)</sub>
+<sub>[framework/ForeverKit/Widgets/Choice.lua:401](../framework/ForeverKit/Widgets/Choice.lua#L401)</sub>
 
 ### Segmented
 
 Two to five named options as a row of buttons, all visible at once. opts: label, items, value, onChange(value).  
-<sub>[framework/ForeverKit/Widgets/Choice.lua:335](../framework/ForeverKit/Widgets/Choice.lua#L335)</sub>
+<sub>[framework/ForeverKit/Widgets/Choice.lua:444](../framework/ForeverKit/Widgets/Choice.lua#L444)</sub>
 
 ### RadioGroup
 
 Named options listed vertically, one selected; use when each option needs room for a longer label. opts: label, items, value, onChange(value).  
-<sub>[framework/ForeverKit/Widgets/Choice.lua:382](../framework/ForeverKit/Widgets/Choice.lua#L382)</sub>
+<sub>[framework/ForeverKit/Widgets/Choice.lua:491](../framework/ForeverKit/Widgets/Choice.lua#L491)</sub>
 
 ### ColorSwatch
 
 Colour setting: a swatch that opens the game's colour picker. opts: label, value = { r, g, b [, a] }, hasAlpha, onChange({ r, g, b [, a] }). Cancelling the picker restores the previous colour.  
-<sub>[framework/ForeverKit/Widgets/Choice.lua:441](../framework/ForeverKit/Widgets/Choice.lua#L441)</sub>
+<sub>[framework/ForeverKit/Widgets/Choice.lua:550](../framework/ForeverKit/Widgets/Choice.lua#L550)</sub>
 
 ### KeybindButton
 
 Captures a key combination ("CTRL-SHIFT-K"). Click, then press the keys; Escape cancels, right-click clears. opts: label, value, onChange(keyOrNil). The widget only records the key: bind it with FK.Keybind (Features).  
-<sub>[framework/ForeverKit/Widgets/Choice.lua:490](../framework/ForeverKit/Widgets/Choice.lua#L490)</sub>
+<sub>[framework/ForeverKit/Widgets/Choice.lua:599](../framework/ForeverKit/Widgets/Choice.lua#L599)</sub>
 
 ### TimerBar
 
@@ -213,7 +213,7 @@ Modal question in the theme's style. FK.Dialog({ title, text, input = "default t
 
 ### Menu
 
-Context menu at the cursor: FK.Menu({ { label = "Delete", onClick = fn }, { divider = true }, { header = "Move to" }, { label = "Bank", onClick = fn, disabled = true } }). Typical trigger: a row's right-click.  
+Context menu at the cursor: FK.Menu({ { label = "Delete", onClick = fn }, { divider = true }, { header = "Move to" }, { label = "Bank", onClick = fn, disabled = true } }, anchor). Ticks: { label, checked = bool | fn(item), onClick } (the menu stays open and redraws); radio buttons: add radio = true; submenus: { label, children = items | fn() } open beside the row on hover or click, as deep as needed. items (and children) may be a function, evaluated when the menu opens: it returns the list, or builds it MenuUtil style on the builder it receives: m:Header(text), m:Divider(), m:Item(label, onClick), m:Check(label, checked, onClick), m:Radio(label, checked, onClick), each returning a builder for that entry's submenu. Tests: FK.Popup:Pick("Move to", "Bank") follows the path. Typical trigger: a row's right-click.  
 <sub>[framework/ForeverKit/Widgets/Nav.lua:151](../framework/ForeverKit/Widgets/Nav.lua#L151)</sub>
 
 ### Toast
@@ -278,7 +278,7 @@ Amount of money as gold / silver / copper boxes. opts: label, value (copper), on
 
 ### ScrollArea
 
-Scrolling container for content taller than its space (long settings pages). Children stack vertically: area:Add(widget). opts: gap, padding. Needs a height (opts.height or two anchors).  
+Scrolling container for content taller than its space (long settings pages). Children stack vertically: area:Add(widget). opts: gap, padding. Needs a height (opts.height or two anchors). FK.ScrollBar(owner, onScroll(offset)) is the themed bar alone, for a hand-made ScrollFrame: bar:Set(total, visible, offset), bar:Restyle().  
 <sub>[framework/ForeverKit/Widgets/Scroll.lua:47](../framework/ForeverKit/Widgets/Scroll.lua#L47)</sub>
 
 ### ScrollList
@@ -364,6 +364,11 @@ FK.Items.Load(idOrLink, fn(info)) calls fn once the item data is cached (immedia
 
 FK.Keybind(key, fn) binds a key combination ("CTRL-SHIFT-K", as KeybindButton records it) to fn while the addon is loaded, without touching the player's saved key bindings. FK.Keybind(key, nil) removes it. Bindings change after combat if set during it.  
 <sub>[framework/ForeverKit/Features/Keybind.lua:4](../framework/ForeverKit/Features/Keybind.lua#L4)</sub>
+
+### Binding
+
+FK.Binding(name, label, fn) puts an action in the game's Key Bindings menu (under the addon's title), where players bind it like any other: FK.Binding("MYADDON_TOGGLE", "Toggle My Addon", fn). The client only lists actions from a Bindings.xml, so `tools/fk sync` (and build) writes that file from these calls; never edit it by hand. Call it at file load. name: capitals, digits and _ (keep it once players have bound it: the binding is saved by name).  
+<sub>[framework/ForeverKit/Features/Keybind.lua:29](../framework/ForeverKit/Features/Keybind.lua#L29)</sub>
 
 ### MapPins
 

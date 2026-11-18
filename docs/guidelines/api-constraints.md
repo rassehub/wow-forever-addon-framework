@@ -9,7 +9,9 @@ Facts an addon must respect. Background and sources: research
   retail compatibility code. Removed globals (`GetItemInfo`, `GetContainerItemInfo`,
   `UIDropDownMenu_*` for new code, `getglobal`) are lint errors *(checked)*.
 - Pure Lua; no XML frames; no Blizzard widget templates except `BackdropTemplate`
-  (ForeverKit widgets cover the rest).
+  (ForeverKit widgets cover the rest). Key Bindings menu entries: `FK.Binding`; the client
+  reads them only from `Bindings.xml`, which `tools/fk sync` generates *(checked:
+  `bindings-stale`, `bindings-handwritten`)*. Menus: `FK.Menu`, not `MenuUtil`.
 - Code lives in the addon namespace: `local ADDON, ns = ...; local FK = ns.FK`. Globals only
   where the client requires a name (SavedVariables, `SLASH_*`, `## AddonCompartmentFunc`,
   override-binding buttons) *(checked: `global-leak`, `global-function`)*.

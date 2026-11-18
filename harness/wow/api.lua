@@ -49,7 +49,11 @@ function H.Install()
 			[2589] = { name = "Linen Cloth", quality = 1, icon = 132889, sellPrice = 13, stack = 200, type = "Trade Goods", classID = 7, subclassID = 5 },
 			[2592] = { name = "Wool Cloth", quality = 1, icon = 132911, sellPrice = 33, stack = 200, type = "Trade Goods", classID = 7, subclassID = 5 },
 			[6948] = { name = "Hearthstone", quality = 1, icon = 134414, sellPrice = 0, stack = 1, type = "Miscellaneous", classID = 15, subclassID = 0 },
-			[19019] = { name = "Thunderfury, Blessed Blade of the Windseeker", quality = 5, icon = 134585, sellPrice = 255355, stack = 1, type = "Weapon", classID = 2, subclassID = 7, equipLoc = "INVTYPE_WEAPON", level = 80, minLevel = 60 },
+			[19019] = { name = "Thunderfury, Blessed Blade of the Windseeker", quality = 5, icon = 134585, sellPrice = 255355, stack = 1, type = "Weapon", classID = 2, subclassID = 7, equipLoc = "INVTYPE_WEAPON", level = 80, minLevel = 60, subType = "Swords",
+				-- C_TooltipInfo.GetItemByID: { left, right } per line after the name
+				tooltip = { { "Binds when picked up" }, { "One-Hand", "Sword" }, { "44 - 115 Damage", "Speed 1.90" },
+					{ "(53.9 damage per second)" }, { "+5 Agility" }, { "+8 Stamina" }, { "+8 Nature Resistance" },
+					{ "Requires Level 60" }, { "Chance on hit: Blasts your enemy with lightning." } } },
 		},
 		spells = { [133] = { name = "Fireball", icon = 135812 } },
 		bags = { [0] = { size = 16, [1] = { id = 6948, count = 1 }, [2] = { id = 2589, count = 20 } } },
@@ -205,6 +209,7 @@ function H.Install()
 	G.GetBuildInfo = function() return "1.60.1", "70938", "Nov 13 2026", 16001 end
 	G.IsLoggedIn = function() return H.loggedIn == true end
 	G.InCombatLockdown = function() return H.inCombat end
+	G.IsIndoors = function() return fx.indoors == true end
 	G.ReloadUI = function() H.reloadRequested = true end
 	-- every file exists unless a test lists it in H.missingFiles (the real answer needs the client)
 	G.GetFileIDFromPath = function(path) return not (H.missingFiles and H.missingFiles[path]) and 1 or nil end
@@ -222,6 +227,15 @@ function H.Install()
 	G.IsControlKeyDown = function() return H.modifiers.CTRL == true end
 	G.IsAltKeyDown = function() return H.modifiers.ALT == true end
 	G.IsModifierKeyDown = function() return next(H.modifiers) ~= nil end
+	-- the default modifier bindings: Shift links (CHATLINK), Ctrl tries on (DRESSUP), Shift compares
+	local MODIFIED_CLICK = { CHATLINK = "SHIFT", COMPAREITEMS = "SHIFT", DRESSUP = "CTRL" }
+	G.IsModifiedClick = function(action) return H.modifiers[MODIFIED_CLICK[action or "CHATLINK"] or "SHIFT"] == true end
+	-- a Shift-click on an item puts its link in the chat box: tests read H.linked
+	G.HandleModifiedItemClick = function(link)
+		if not G.IsModifiedClick("CHATLINK") then return false end
+		H.linked = link
+		return true
+	end
 	G.IsMouseButtonDown = function() return false end
 	G.GetMouseFoci = function() return { H.hover } end
 
@@ -502,6 +516,7 @@ function H.Install()
 	end
 	G.UnitClassBase = function(unit) if unit == "player" then return p.class, p.classId end end
 	G.UnitLevel = function(unit) return unit == "player" and p.level or 0 end
+	G.GetInventoryItemID = function(unit, slot) return unit == "player" and fx.equipped and fx.equipped[slot] or nil end
 	G.UnitRace = function(unit) if unit == "player" then return p.race, p.race end end
 	G.UnitFactionGroup = function(unit) if unit == "player" then return p.faction, p.faction end end
 	G.UnitGUID = function(unit) if unit == "player" then return "Player-1-00000001" end end
@@ -541,6 +556,7 @@ function H.Install()
 		TooltipDataType = { Item = 0, Spell = 1, Unit = 2 },
 		ItemQuality = { Poor = 0, Common = 1, Uncommon = 2, Rare = 3, Epic = 4, Legendary = 5 },
 		CompressionMethod = { Deflate = 0, Zlib = 1 },
+		BagIndex = { Backpack = 0, Bag_1 = 1, Bag_2 = 2, Bag_3 = 3, Bag_4 = 4, Bank = -1 },
 	})
 
 	-----------------------------------------------------------------------------------------
@@ -567,7 +583,20 @@ function H.Install()
 		local id = itemId(link)
 		return id and fx.items[id] and fx.items[id].name or link
 	end
+	-- the item tooltip as data: the name, then the fixture's tooltip lines ({ left, right })
+	G.C_TooltipInfo = namespace("C_TooltipInfo", {
+		GetItemByID = function(id)
+			local it = fx.items[id]
+			if not it then return nil end
+			local lines = { { leftText = it.name } }
+			for _, l in ipairs(it.tooltip or {}) do
+				lines[#lines + 1] = { leftText = l[1], rightText = l[2], leftColor = { r = 1, g = 1, b = 1 } }
+			end
+			return { id = id, lines = lines }
+		end,
+	})
 	G.C_Item = namespace("C_Item", {
+		GetItemQualityColor = function(q) return G.GetItemQualityColor(q) end,
 		GetItemInfo = function(v)
 			local id = itemId(v)
 			if not id or not cached(id) then return nil end
@@ -650,6 +679,9 @@ function H.Install()
 	})
 	G.C_QuestLog = namespace("C_QuestLog", {
 		IsQuestFlaggedCompleted = function(id) return fx.completedQuests[id] == true end,
+		IsOnQuest = function(id) return fx.questLog ~= nil and fx.questLog[id] == true end,
+		GetQuestTagInfo = function() return nil end, -- plain quests: no elite, dungeon or raid tag
+		GetTitleForQuestID = function() return nil end,
 	})
 	G.C_Map = namespace("C_Map", {
 		GetBestMapForUnit = function() return fx.mapID or 1453 end,
@@ -657,6 +689,17 @@ function H.Install()
 		GetAreaInfo = function(areaID) return fx.areas and fx.areas[areaID] or ("Area " .. areaID) end,
 		SetUserWaypoint = function(point) H.waypoint = point end,
 		GetUserWaypoint = function() return H.waypoint end,
+		-- a zone's art: one layer of 256-pixel tiles, as the world map has (4 x 3 for a 1002 x 668 map)
+		GetMapArtLayers = function() return { { layerWidth = 1002, layerHeight = 668, tileWidth = 256, tileHeight = 256, layerIndex = 1 } } end,
+		GetMapArtLayerTextures = function(uiMap)
+			local tiles = {}
+			for i = 1, 12 do tiles[i] = "Interface\\WorldMap\\Map" .. uiMap .. "\\Tile" .. i end
+			return tiles
+		end,
+		CanSetUserWaypointOnMap = function() return true end,
+		OpenWorldMap = function(uiMap) H.openedMap = uiMap end,
+		-- yards across and down; a zone-sized default, fx.mapSize = { w, h } to change it
+		GetMapWorldSize = function() local m = fx.mapSize or { 1000, 667 } return m[1], m[2] end,
 		GetPlayerMapPosition = function()
 			local pos = fx.position or { 0.5, 0.5 }
 			return { x = pos[1], y = pos[2], GetXY = function(self) return self.x, self.y end }

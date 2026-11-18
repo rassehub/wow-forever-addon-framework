@@ -1,7 +1,7 @@
 local _, ns = ...
 local FK = ns.FK
 
----@module DB  Saved settings: ns.db = FK:NewDB("MyAddonDB", { profile = {...}, global = {...}, char = {...} }, { version, migrate(sv, from) }); declare MyAddonDB in ## SavedVariables. db.profile/global/char from FK:OnLoad on. db:Get(path), db:Set(path, value), db:OnChange(path, fn(value, path)), db:Reset(path); profiles: GetProfile, Profiles, SetProfile, CopyProfile, DeleteProfile; db:Export() / db:Import(text) (parsed, never executed). Values equal to defaults are not saved.
+---@module DB  Saved settings: ns.db = FK:NewDB("MyAddonDB", { profile = {...}, global = {...}, char = {...} }, { version, migrate(sv, from) }) (from is 0 for data saved before the addon used FK:NewDB, so an existing addon can convert its old SavedVariable; never called for a new, empty one); declare MyAddonDB in ## SavedVariables. db.profile/global/char from FK:OnLoad on. db:Get(path), db:Set(path, value), db:OnChange(path, fn(value, path)), db:Reset(path); profiles: GetProfile, Profiles, SetProfile, CopyProfile, DeleteProfile; db:Export() / db:Import(text) (parsed, never executed). Values equal to defaults are not saved.
 
 -- Saved settings with defaults, profiles and per-character data in ONE account-wide
 -- SavedVariable (declare it in the TOC: ## SavedVariables: MyAddonDB).
@@ -71,8 +71,9 @@ function DB:Load()
 	end
 	rawset(self, "sv", sv)
 	local version = self.opts.version
-	if version and sv.version and sv.version < version and self.opts.migrate then
-		self.opts.migrate(sv, sv.version)
+	-- from = 0: data written before the addon used FK:NewDB (or before it had a version)
+	if version and (sv.version or 0) < version and self.opts.migrate and next(sv) ~= nil then
+		self.opts.migrate(sv, sv.version or 0)
 	end
 	sv.version = version
 	sv.profiles, sv.profileKeys, sv.chars, sv.global = sv.profiles or {}, sv.profileKeys or {}, sv.chars or {}, sv.global or {}
