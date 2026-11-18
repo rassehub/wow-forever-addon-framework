@@ -732,9 +732,19 @@ function H.Install()
 		GetMapWorldSize = function() local m = fx.mapSize or { 1000, 667 } return m[1], m[2] end,
 		GetPlayerMapPosition = function()
 			local pos = fx.position or { 0.5, 0.5 }
-			return { x = pos[1], y = pos[2], GetXY = function(self) return self.x, self.y end }
+			return G.CreateVector2D(pos[1], pos[2])
+		end,
+		-- where a map point lies in its continent, in yards: fx.world = { [uiMap] = { continent, left, top } }
+		-- (a map's size is GetMapWorldSize); maps not listed have no world position
+		GetWorldPosFromMapPos = function(uiMap, pos)
+			local w = fx.world and fx.world[uiMap]
+			if not w then return nil end
+			local width, height = G.C_Map.GetMapWorldSize(uiMap)
+			local x, y = pos:GetXY()
+			return w[1], G.CreateVector2D(w[2] + x * width, w[3] + y * height)
 		end,
 	})
+	G.CreateVector2D = function(x, y) return { x = x, y = y, GetXY = function(self) return self.x, self.y end } end
 	local enc = {}
 	for k, v in pairs(Encoding) do enc[k] = v end -- a fresh table: namespace() sets a metatable on it
 	G.C_EncodingUtil = namespace("C_EncodingUtil", enc)
