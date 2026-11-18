@@ -8,7 +8,7 @@ local Theme = FK.Theme
 
 local function clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
 
----@widget MapCanvas  Pannable, zoomable texture canvas with pins (world maps, floor plans, boards). Drag to pan, wheel to zoom around the cursor, +/- buttons, cursor coordinates. opts: contentWidth, contentHeight (canvas units, e.g. 1002x668 for a world map), tiles = { { texture, x, y, w, h, coords } } in canvas units, zoom (1 = fit), maxZoom (default 6), controls (default true), showCoords (default true), onClick(x, y, mouseButton) with x, y in 0..1, onZoom(zoom). Methods: SetTiles(tiles), AddPin(x, y, { icon (texture or icon-set name), size, color, tooltip, onClick(pin, button) }) -> pin with :Remove() and :SetPosition(x, y), ClearPins(), SetZoom(zoom, x, y) (keeps the point x, y under the same spot), CenterOn(x, y), GetZoom(), CursorPosition() -> x, y or nil.
+---@widget MapCanvas  Pannable, zoomable texture canvas with pins (world maps, floor plans, boards). Drag to pan, wheel to zoom around the cursor, +/- buttons, cursor coordinates. opts: contentWidth, contentHeight (canvas units, e.g. 1002x668 for a world map), tiles = { { texture, x, y, w, h, coords } } in canvas units, zoom (1 = fit), maxZoom (default 6), controls (default true), showCoords (default true), onClick(x, y, mouseButton) with x, y in 0..1, onZoom(zoom). Methods: SetTiles(tiles), SetContentSize(w, h) (refits at zoom 1), AddPin(x, y, { icon (texture or icon-set name), size, color, tooltip, onClick(pin, button) }) -> pin with :Remove() and :SetPosition(x, y), ClearPins(), SetZoom(zoom, x, y) (keeps the point x, y under the same spot), CenterOn(x, y), GetZoom(), CursorPosition() -> x, y or nil.
 FK.Define("MapCanvas", {
 	SetTiles = function(self, tiles)
 		for _, t in ipairs(self.tileTextures) do t:Hide() end
@@ -26,6 +26,13 @@ FK.Define("MapCanvas", {
 			if co then t:SetTexCoord(co[1], co[2], co[3], co[4]) else t:SetTexCoord(0, 1, 0, 1) end
 			t:Show()
 		end
+	end,
+	-- Another picture of another size (a dungeon's next floor): fits it again at zoom 1.
+	SetContentSize = function(self, w, h)
+		self.cw, self.ch, self.zoom, self.panX, self.panY = w, h, 1, 0, 0
+		self.canvas:SetSize(w, h)
+		if self.zoomLabel then self.zoomLabel:SetText("100%") end
+		self:Apply()
 	end,
 	-- Screen scale of one canvas unit: the fit scale times the zoom.
 	Scale = function(self)

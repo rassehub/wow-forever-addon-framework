@@ -193,7 +193,7 @@ Children left to right, wrapping to new lines (icon grids, tag lists). opts: gap
 
 ### MapCanvas
 
-Pannable, zoomable texture canvas with pins (world maps, floor plans, boards). Drag to pan, wheel to zoom around the cursor, +/- buttons, cursor coordinates. opts: contentWidth, contentHeight (canvas units, e.g. 1002x668 for a world map), tiles = { { texture, x, y, w, h, coords } } in canvas units, zoom (1 = fit), maxZoom (default 6), controls (default true), showCoords (default true), onClick(x, y, mouseButton) with x, y in 0..1, onZoom(zoom). Methods: SetTiles(tiles), AddPin(x, y, { icon (texture or icon-set name), size, color, tooltip, onClick(pin, button) }) -> pin with :Remove() and :SetPosition(x, y), ClearPins(), SetZoom(zoom, x, y) (keeps the point x, y under the same spot), CenterOn(x, y), GetZoom(), CursorPosition() -> x, y or nil.  
+Pannable, zoomable texture canvas with pins (world maps, floor plans, boards). Drag to pan, wheel to zoom around the cursor, +/- buttons, cursor coordinates. opts: contentWidth, contentHeight (canvas units, e.g. 1002x668 for a world map), tiles = { { texture, x, y, w, h, coords } } in canvas units, zoom (1 = fit), maxZoom (default 6), controls (default true), showCoords (default true), onClick(x, y, mouseButton) with x, y in 0..1, onZoom(zoom). Methods: SetTiles(tiles), SetContentSize(w, h) (refits at zoom 1), AddPin(x, y, { icon (texture or icon-set name), size, color, tooltip, onClick(pin, button) }) -> pin with :Remove() and :SetPosition(x, y), ClearPins(), SetZoom(zoom, x, y) (keeps the point x, y under the same spot), CenterOn(x, y), GetZoom(), CursorPosition() -> x, y or nil.  
 <sub>[framework/ForeverKit/Widgets/Map.lua:11](../framework/ForeverKit/Widgets/Map.lua#L11)</sub>
 
 ### Tabs
