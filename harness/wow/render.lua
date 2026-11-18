@@ -107,6 +107,22 @@ local function markup(text)
 	return (table.concat(out):gsub("\n", "<br>"):gsub("||", "|"))
 end
 
+-- The |c codes still open at the end of text (not closed by a |r), in order.
+local function openColors(text)
+	local stack, pos = {}, 1
+	while true do
+		local s, e = text:find("|c%x%x%x%x%x%x%x%x", pos)
+		local rs = text:find("|r", pos, true)
+		if not s and not rs then break end
+		if s and (not rs or s < rs) then
+			stack[#stack + 1], pos = text:sub(s, e), e + 1
+		else
+			stack[#stack], pos = nil, rs + 2
+		end
+	end
+	return table.concat(stack)
+end
+
 -- opts.crop: frame to crop the page to (with a margin); opts.title
 function H.Render(opts)
 	opts = opts or {}
@@ -183,9 +199,11 @@ function H.Render(opts)
 			if r:IsTruncated() then css = css .. "overflow:hidden;text-overflow:ellipsis;" end
 			-- each line carries the width the emulator measured; the page script squeezes or
 			-- stretches the stand-in font to it, so what overflows here overflows in the emulator
-			local lines = {}
+			-- a colour opened on one line goes on over the break, as in the client
+			local lines, carry = {}, ""
 			for i, line in ipairs(H.TextLines(r)) do
-				lines[i] = ("<span class=ln data-w='%.1f'>%s</span>"):format(H.textWidth(H.plain(line), s.font.size) * r:GetEffectiveScale(), markup(line))
+				lines[i] = ("<span class=ln data-w='%.1f'>%s</span>"):format(H.textWidth(H.plain(line), s.font.size) * r:GetEffectiveScale(), markup(carry .. line))
+				carry = openColors(carry .. line)
 			end
 			emit(r, x, y, w, h, "display:block;" .. css, table.concat(lines, "<br>"), s.secretText and "SECRET" or nil)
 		elseif s.type == "Texture" then
