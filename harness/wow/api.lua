@@ -712,6 +712,8 @@ function H.Install()
 		IsOnQuest = function(id) return fx.questLog ~= nil and fx.questLog[id] == true end,
 		GetQuestTagInfo = function() return nil end, -- plain quests: no elite, dungeon or raid tag
 		GetTitleForQuestID = function() return nil end,
+		-- Forever's green range: levels below yours that still give a green quest (fx.greenRange)
+		GetTrivialRange = function() return fx.greenRange or 8 end,
 	})
 	G.C_Map = namespace("C_Map", {
 		GetBestMapForUnit = function() return fx.mapID or 1453 end,
