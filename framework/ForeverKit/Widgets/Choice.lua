@@ -277,7 +277,8 @@ function Level:Open(anchor, items, opts)
 			probe:SetText(item.header or item.label or "")
 			width = math.max(width, probe:GetStringWidth() * 1.25 + 40 + (item.icon and 20 or 0) + (item.children and 14 or 0))
 		end
-		width = math.max(width, not opts.submenu and anchor and anchor.GetWidth and anchor:GetWidth() or 0, 100)
+		-- a dropdown is at least as wide as its button; a cursor menu's anchor is UIParent, not a button
+		width = math.max(width, not opts.submenu and not opts.atCursor and anchor and anchor.GetWidth and anchor:GetWidth() or 0, 100)
 	end
 	f:SetWidth(width)
 	f:ClearAllPoints()

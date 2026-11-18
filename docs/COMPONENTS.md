@@ -44,7 +44,7 @@ FK:After(seconds, fn) and FK:Every(seconds, fn, times) return cancellable timers
 
 ### Util
 
-FK:Print(...) (addon-prefixed chat), FK.Money(copper, plain), FK.Number(n, short), FK.Duration(seconds), FK.Round(v, step), FK.Clamp, FK.Copy, FK.Equal, FK.GetPath/SetPath(t, "a.b.c"), FK.Hex(r, g, b), FK.Colorize(text, r, g, b), FK.Pixel(n) (n physical pixels in UI units), FK.Pool(create, reset), FK.Serialize(v) / FK.Deserialize(text) (data only).  
+FK:Print(...) (addon-prefixed chat), FK.Money(copper, plain), FK.Number(n, short), FK.Duration(seconds), FK.Round(v, step), FK.Clamp, FK.Copy, FK.Equal, FK.GetPath/SetPath(t, "a.b.c"), FK.Hex(r, g, b), FK.Colorize(text, r, g, b), FK.Pixel(n) (n physical pixels in UI units), FK.Pool(create, reset), FK.Serialize(v) / FK.Deserialize(text) (data only), FK.RefreshHover() (call after scrolling a hand-made list: re-runs OnEnter of the row under a still mouse).  
 <sub>[framework/ForeverKit/Core/Util.lua:4](../framework/ForeverKit/Core/Util.lua#L4)</sub>
 
 ### Widget
@@ -104,32 +104,32 @@ Filled bar with centred text. opts: min, max, value, text or format (string or f
 ### Dropdown
 
 Pick one of several named options. For numbers use Slider. opts: label, items, value, placeholder, onChange(value). Methods: SetItems(items).  
-<sub>[framework/ForeverKit/Widgets/Choice.lua:362](../framework/ForeverKit/Widgets/Choice.lua#L362)</sub>
+<sub>[framework/ForeverKit/Widgets/Choice.lua:363](../framework/ForeverKit/Widgets/Choice.lua#L363)</sub>
 
 ### MultiDropdown
 
 Pick any number of named options; the list stays open while ticking. opts: label, items, value = { [itemValue] = true }, placeholder, onChange(valueSet).  
-<sub>[framework/ForeverKit/Widgets/Choice.lua:401](../framework/ForeverKit/Widgets/Choice.lua#L401)</sub>
+<sub>[framework/ForeverKit/Widgets/Choice.lua:402](../framework/ForeverKit/Widgets/Choice.lua#L402)</sub>
 
 ### Segmented
 
 Two to five named options as a row of buttons, all visible at once. opts: label, items, value, onChange(value).  
-<sub>[framework/ForeverKit/Widgets/Choice.lua:444](../framework/ForeverKit/Widgets/Choice.lua#L444)</sub>
+<sub>[framework/ForeverKit/Widgets/Choice.lua:445](../framework/ForeverKit/Widgets/Choice.lua#L445)</sub>
 
 ### RadioGroup
 
 Named options listed vertically, one selected; use when each option needs room for a longer label. opts: label, items, value, onChange(value).  
-<sub>[framework/ForeverKit/Widgets/Choice.lua:491](../framework/ForeverKit/Widgets/Choice.lua#L491)</sub>
+<sub>[framework/ForeverKit/Widgets/Choice.lua:492](../framework/ForeverKit/Widgets/Choice.lua#L492)</sub>
 
 ### ColorSwatch
 
 Colour setting: a swatch that opens the game's colour picker. opts: label, value = { r, g, b [, a] }, hasAlpha, onChange({ r, g, b [, a] }). Cancelling the picker restores the previous colour.  
-<sub>[framework/ForeverKit/Widgets/Choice.lua:550](../framework/ForeverKit/Widgets/Choice.lua#L550)</sub>
+<sub>[framework/ForeverKit/Widgets/Choice.lua:551](../framework/ForeverKit/Widgets/Choice.lua#L551)</sub>
 
 ### KeybindButton
 
 Captures a key combination ("CTRL-SHIFT-K"). Click, then press the keys; Escape cancels, right-click clears. opts: label, value, onChange(keyOrNil). The widget only records the key: bind it with FK.Keybind (Features).  
-<sub>[framework/ForeverKit/Widgets/Choice.lua:599](../framework/ForeverKit/Widgets/Choice.lua#L599)</sub>
+<sub>[framework/ForeverKit/Widgets/Choice.lua:600](../framework/ForeverKit/Widgets/Choice.lua#L600)</sub>
 
 ### TimerBar
 
@@ -284,22 +284,22 @@ Scrolling container for content taller than its space (long settings pages). Chi
 ### ScrollList
 
 Virtualised list: only the visible rows exist, so 10 000 items cost the same as 20. opts: rowHeight, items, create(row) builds a row's parts once, update(row, item, index) fills them (default: item.icon + item.label or the item as text), onClick(item, mouseButton, row), onEnter(item, row) for tooltips, selectable, striped, emptyText. Methods: SetItems, Refresh, ScrollToIndex, GetSelected, SetSelected.  
-<sub>[framework/ForeverKit/Widgets/Scroll.lua:92](../framework/ForeverKit/Widgets/Scroll.lua#L92)</sub>
+<sub>[framework/ForeverKit/Widgets/Scroll.lua:95](../framework/ForeverKit/Widgets/Scroll.lua#L95)</sub>
 
 ### Table
 
 Sortable multi-column list (auction results, rosters, loot). opts: columns = { { key, label, width or flex = 1, align = "LEFT"|"RIGHT"|"CENTER", format = function(value, item) -> text, sort = function(a, b) or false, color = function(item) -> r, g, b } }, items, sortKey, sortDescending, resizableColumns (default true: drag a header's right edge), onClick(item, mouseButton), onEnter(item, row), selectable, rowHeight. Methods: SetItems, Sort(key, descending), GetSelected.  
-<sub>[framework/ForeverKit/Widgets/Scroll.lua:201](../framework/ForeverKit/Widgets/Scroll.lua#L201)</sub>
+<sub>[framework/ForeverKit/Widgets/Scroll.lua:207](../framework/ForeverKit/Widgets/Scroll.lua#L207)</sub>
 
 ### Tree
 
 Collapsible hierarchy (journal categories, zone > quest lists). opts: nodes = { { label, icon (texture or a name from the icon set), children = {...}, expanded, value, color } }, onSelect(node), onEnter(node, row), indent (default 14), selectBranches (a branch is selected as well as unfolded: journals). Clicking a branch folds it; leaves are selected. Methods: SetNodes, Select(nodeOrValue) (unfolds its parents), ExpandAll, CollapseAll, GetSelected.  
-<sub>[framework/ForeverKit/Widgets/Scroll.lua:343](../framework/ForeverKit/Widgets/Scroll.lua#L343)</sub>
+<sub>[framework/ForeverKit/Widgets/Scroll.lua:349](../framework/ForeverKit/Widgets/Scroll.lua#L349)</sub>
 
 ### TextArea
 
 Multi-line text input with scrolling (notes, import/export strings). opts: label, value, readOnly (select-and-copy only), onChange(text) when focus is lost.  
-<sub>[framework/ForeverKit/Widgets/Scroll.lua:446](../framework/ForeverKit/Widgets/Scroll.lua#L446)</sub>
+<sub>[framework/ForeverKit/Widgets/Scroll.lua:452](../framework/ForeverKit/Widgets/Scroll.lua#L452)</sub>
 
 ### Slider
 

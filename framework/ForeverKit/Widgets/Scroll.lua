@@ -85,7 +85,10 @@ FK.Define("ScrollArea", {
 	self.scroll:SetScrollChild(self.content)
 	self.content.fkContainer = self
 	self:EnableMouseWheel(true)
-	self:SetScript("OnMouseWheel", function(_, delta) self:ScrollTo(self.offset - delta * 40) end)
+	self:SetScript("OnMouseWheel", function(_, delta)
+		self:ScrollTo(self.offset - delta * 40)
+		FK.RefreshHover()
+	end)
 	self:SetScript("OnSizeChanged", function() self:Layout() end)
 end)
 
@@ -107,7 +110,10 @@ FK.Define("ScrollList", {
 		self.offset = FK.Clamp(index - 1, 0, math.max(0, #self.items - self:VisibleCount()))
 		self:Refresh()
 	end,
-	Scroll = function(self, delta) self:ScrollToIndex(self.offset + 1 + delta) end,
+	Scroll = function(self, delta)
+		self:ScrollToIndex(self.offset + 1 + delta)
+		FK.RefreshHover()
+	end,
 	Refresh = function(self)
 		local T = Theme.current
 		local visible, items = self:VisibleCount(), self.items
@@ -490,6 +496,7 @@ FK.Define("TextArea", {
 	self.scroll:EnableMouseWheel(true)
 	self.scroll:SetScript("OnMouseWheel", function(s, delta)
 		s:SetVerticalScroll(FK.Clamp(s:GetVerticalScroll() - delta * 30, 0, s:GetVerticalScrollRange()))
+		FK.RefreshHover()
 	end)
 	self.holder:EnableMouse(true)
 	self.holder:SetScript("OnMouseDown", function() box:SetFocus() end)

@@ -1,7 +1,7 @@
 local _, ns = ...
 local FK = ns.FK
 
----@module Util  FK:Print(...) (addon-prefixed chat), FK.Money(copper, plain), FK.Number(n, short), FK.Duration(seconds), FK.Round(v, step), FK.Clamp, FK.Copy, FK.Equal, FK.GetPath/SetPath(t, "a.b.c"), FK.Hex(r, g, b), FK.Colorize(text, r, g, b), FK.Pixel(n) (n physical pixels in UI units), FK.Pool(create, reset), FK.Serialize(v) / FK.Deserialize(text) (data only).
+---@module Util  FK:Print(...) (addon-prefixed chat), FK.Money(copper, plain), FK.Number(n, short), FK.Duration(seconds), FK.Round(v, step), FK.Clamp, FK.Copy, FK.Equal, FK.GetPath/SetPath(t, "a.b.c"), FK.Hex(r, g, b), FK.Colorize(text, r, g, b), FK.Pixel(n) (n physical pixels in UI units), FK.Pool(create, reset), FK.Serialize(v) / FK.Deserialize(text) (data only), FK.RefreshHover() (call after scrolling a hand-made list: re-runs OnEnter of the row under a still mouse).
 
 function FK.Clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
 
@@ -213,4 +213,15 @@ function FK.Deserialize(text)
 	end)
 	if ok then return result end
 	return nil, result
+end
+
+-- After a scroll the row under a still mouse shows other data (virtual lists reuse row frames),
+-- but the client fires no OnEnter. Re-run the hovered frame's OnLeave and OnEnter so its tooltip
+-- or highlight follows. Call after every scroll.
+function FK.RefreshHover()
+	local f = GetMouseFoci()[1]
+	if not f or not f:IsVisible() then return end
+	local leave, enter = f:GetScript("OnLeave"), f:GetScript("OnEnter")
+	if leave then leave(f, false) end
+	if enter then enter(f, false) end
 end

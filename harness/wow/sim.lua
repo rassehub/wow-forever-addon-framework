@@ -83,6 +83,11 @@ local function target(f, action)
 	return x, y
 end
 
+-- The client re-finds the frame under a still mouse every frame (content scrolled under it).
+function H.RecheckMouse()
+	if H.mouseX then moveMouse(H.mouseX, H.mouseY) end
+end
+
 function H.Hover(f)
 	if not f then return moveMouse(-1, -1) end
 	target(f, "Hover")

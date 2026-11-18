@@ -237,7 +237,7 @@ function H.Install()
 		return true
 	end
 	G.IsMouseButtonDown = function() return false end
-	G.GetMouseFoci = function() return { H.hover } end
+	G.GetMouseFoci = function() H.RecheckMouse() return { H.hover } end
 
 	-----------------------------------------------------------------------------------------
 	-- Base frames and fonts

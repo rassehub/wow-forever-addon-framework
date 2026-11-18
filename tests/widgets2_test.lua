@@ -234,6 +234,7 @@ test("context menu opens at the cursor and runs the item", function()
 	local FK = H.Start(KIT).FK
 	local did
 	FK.Menu({ { header = "Goal" }, { label = "Delete", onClick = function() did = "delete" end }, { divider = true }, { label = "Locked", disabled = true, onClick = function() did = "bad" end } })
+	ok(FK.Popup.frame:GetWidth() < 400, "a cursor menu fits its items, not the screen")
 	FK.Popup:Pick("Locked")
 	eq(did, nil)
 	FK.Popup:Pick("Delete")
@@ -406,3 +407,16 @@ for _, theme in ipairs({ "pixel", "vanilla" }) do
 		ok(refs.list.body:IsShown())
 	end)
 end
+
+test("hover follows the list: a wheel under a still mouse shows the new row's tooltip", function()
+	local FK, win = kit()
+	local items = {}
+	for i = 1, 100 do items[i] = "Item " .. i end
+	local list = FK.ScrollList(win.content, { points = { { "TOPLEFT" }, { "BOTTOMRIGHT" } }, items = items,
+		onEnter = function(item, row) GameTooltip:SetOwner(row, "ANCHOR_RIGHT") GameTooltip:SetText(item) GameTooltip:Show() end })
+	H.Advance(0)
+	H.Hover(list.rows[2])
+	eq(H.TooltipLines(), { "Item 2" })
+	H.Wheel(list.rows[2], -1)
+	eq(H.TooltipLines(), { "Item 5" })
+end)
