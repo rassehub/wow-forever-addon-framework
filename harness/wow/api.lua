@@ -236,6 +236,11 @@ function H.Install()
 		H.linked = link
 		return true
 	end
+	-- the chat box's link insert (menus' "Link in chat"): tests read H.linked
+	G.ChatEdit_InsertLink = function(link)
+		H.linked = link
+		return true
+	end
 	G.IsMouseButtonDown = function() return false end
 	G.GetMouseFoci = function() H.RecheckMouse() return { H.hover } end
 

@@ -305,10 +305,10 @@ end
 function Level:IsOpenFor(anchor) return self.frame ~= nil and self.frame:IsShown() and self.anchor == anchor end
 
 -- Test and automation helper: picks the visible item with this label. More labels follow a
--- path through submenus: FK.Popup:Pick("Move to", "Bank").
+-- path through submenus: FK.Popup:Pick("Move to", "Bank"). Labels match as seen (colour codes ignored).
 function Level:Pick(label, ...)
 	for i, item in ipairs(self.items or {}) do
-		if item.label == label then
+		if item.label == label or item.label and FK.Chat.Strip(item.label) == label then
 			self.offset = FK.Clamp(i - 1, 0, math.max(0, #self.items - (self.opts.maxRows or 12)))
 			self:Render()
 			for _, row in ipairs(self.rows) do
