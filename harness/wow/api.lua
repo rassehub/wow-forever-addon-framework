@@ -48,12 +48,21 @@ function H.Install()
 		items = {
 			[2589] = { name = "Linen Cloth", quality = 1, icon = 132889, sellPrice = 13, stack = 200, type = "Trade Goods", classID = 7, subclassID = 5 },
 			[2592] = { name = "Wool Cloth", quality = 1, icon = 132911, sellPrice = 33, stack = 200, type = "Trade Goods", classID = 7, subclassID = 5 },
-			[6948] = { name = "Hearthstone", quality = 1, icon = 134414, sellPrice = 0, stack = 1, type = "Miscellaneous", classID = 15, subclassID = 0 },
+			[6948] = { name = "Hearthstone", quality = 1, icon = 134414, sellPrice = 0, stack = 1, type = "Miscellaneous", classID = 15, subclassID = 0,
+				tooltip = { { "Soulbound" }, { "Unique" }, { "Use: Returns you to your home. Speak to an Innkeeper in a different place to change your home location." } } },
 			[19019] = { name = "Thunderfury, Blessed Blade of the Windseeker", quality = 5, icon = 134585, sellPrice = 255355, stack = 1, type = "Weapon", classID = 2, subclassID = 7, equipLoc = "INVTYPE_WEAPON", level = 80, minLevel = 60, subType = "Swords",
 				-- C_TooltipInfo.GetItemByID: { left, right } per line after the name
 				tooltip = { { "Binds when picked up" }, { "One-Hand", "Sword" }, { "44 - 115 Damage", "Speed 1.90" },
 					{ "(53.9 damage per second)" }, { "+5 Agility" }, { "+8 Stamina" }, { "+8 Nature Resistance" },
 					{ "Requires Level 60" }, { "Chance on hit: Blasts your enemy with lightning." } } },
+			-- a recipe, a class set piece and a usable item, with tooltip lines shaped like the client's
+			[8385] = { name = "Pattern: Turtle Scale Gloves", quality = 2, icon = 134939, sellPrice = 750, stack = 1, type = "Recipe", classID = 9, subclassID = 1, minLevel = 0, subType = "Leatherworking",
+				tooltip = { { "Requires Leatherworking (205)" }, { "Use: Teaches you how to make Turtle Scale Gloves." } } },
+			[16901] = { name = "Stormrage Legguards", quality = 4, icon = 134586, sellPrice = 52436, stack = 1, type = "Armor", classID = 4, subclassID = 2, equipLoc = "INVTYPE_LEGS", level = 76, minLevel = 60, subType = "Leather",
+				tooltip = { { "Binds when picked up" }, { "Legs", "Leather" }, { "200 Armor" }, { "+19 Stamina" }, { "+26 Intellect" },
+					{ "+17 Spirit" }, { "+10 Shadow Resistance" }, { "Durability 90 / 90" }, { "Classes: Druid" }, { "Requires Level 60" },
+					{ "Equip: Restores 6 mana per 5 sec." }, { "" }, { "Stormrage Raiment (1/8)" }, { "  Stormrage Cover" }, { "  Stormrage Legguards" },
+					{ "" }, { "(3) Set: Allows 15% of your Mana regeneration to continue while casting." }, { "(5) Set: Reduces the casting time of your Regrowth spell by 0.2 sec." } } },
 		},
 		spells = { [133] = { name = "Fireball", icon = 135812 } },
 		bags = { [0] = { size = 16, [1] = { id = 6948, count = 1 }, [2] = { id = 2589, count = 20 } } },
@@ -552,6 +561,22 @@ function H.Install()
 		G.ITEM_QUALITY_COLORS[q] = color(c[1], c[2], c[3])
 		G.ITEM_QUALITY_COLORS[q].color = G.ITEM_QUALITY_COLORS[q]
 	end
+	-- the client's format strings for item tooltips (enUS GlobalStrings): addons build patterns
+	-- from these, so they read the tooltip in every language
+	for k, v in pairs({
+		ITEM_MIN_LEVEL = "Requires Level %d", ITEM_LEVEL = "Item Level %d", ITEM_CLASSES_ALLOWED = "Classes: %s",
+		ITEM_RACES_ALLOWED = "Races: %s", ITEM_MIN_SKILL = "Requires %s (%d)", ITEM_REQ_SKILL = "Requires %s",
+		ITEM_REQ_REPUTATION = "Requires %s - %s", ITEM_SPELL_TRIGGER_ONEQUIP = "Equip:", ITEM_SPELL_TRIGGER_ONUSE = "Use:",
+		ITEM_SPELL_TRIGGER_ONPROC = "Chance on hit:", ITEM_SET_NAME = "%s (%d/%d)", ITEM_SET_BONUS = "Set: %s",
+		ITEM_SET_BONUS_GRAY = "(%d) Set: %s", DURABILITY_TEMPLATE = "Durability %d / %d",
+		ITEM_BIND_ON_PICKUP = "Binds when picked up", ITEM_BIND_ON_EQUIP = "Binds when equipped",
+		ITEM_BIND_ON_USE = "Binds when used", ITEM_BIND_QUEST = "Quest Item", ITEM_SOULBOUND = "Soulbound",
+		ITEM_UNIQUE = "Unique", ITEM_UNIQUE_MULTIPLE = "Unique (%d)", ITEM_UNIQUE_EQUIPPABLE = "Unique-Equipped",
+		DAMAGE_TEMPLATE = "%s - %s Damage", SINGLE_DAMAGE_TEMPLATE = "%s Damage", DAMAGE_TEMPLATE_WITH_SCHOOL = "%s - %s %s Damage",
+		DPS_TEMPLATE = "(%.1f damage per second)", ARMOR_TEMPLATE = "%s Armor", SPEED = "Speed",
+		ITEM_STARTS_QUEST = "This Item Begins a Quest",
+		INVTYPE_WEAPON = "One-Hand", INVTYPE_LEGS = "Legs", INVTYPE_HEAD = "Head", INVTYPE_CHEST = "Chest",
+	}) do G[k] = v end
 	G.GetItemQualityColor = function(q) local c = G.ITEM_QUALITY_COLORS[q] or G.ITEM_QUALITY_COLORS[1] return c.r, c.g, c.b, c.colorStr end
 	G.RAID_CLASS_COLORS = {}
 	for class, c in pairs({ WARRIOR = { 0.78, 0.61, 0.43 }, PALADIN = { 0.96, 0.55, 0.73 }, HUNTER = { 0.67, 0.83, 0.45 }, ROGUE = { 1, 0.96, 0.41 }, PRIEST = { 1, 1, 1 }, SHAMAN = { 0, 0.44, 0.87 }, MAGE = { 0.25, 0.78, 0.92 }, WARLOCK = { 0.53, 0.53, 0.93 }, DRUID = { 1, 0.49, 0.04 } }) do
