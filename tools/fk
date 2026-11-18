@@ -413,6 +413,9 @@ def cmd_live(args):
     if not sessions:
         die("FKDevDB has no sessions yet")
     s = sessions[0]
+    # the FKDev button reloads to save, which starts a new, empty session after the one that ran the queue
+    if not s.get("run") and len(sessions) > 1 and sessions[1].get("run"):
+        s = sessions[1]
     age = int(time.time() - path.stat().st_mtime)
     print(f"session {s.get('started')} (saved {age}s ago), client {', '.join(map(str, s.get('client', [])))}")
     errors = s.get("errors") or []
