@@ -587,6 +587,7 @@ function H.Install()
 		ItemQuality = { Poor = 0, Common = 1, Uncommon = 2, Rare = 3, Epic = 4, Legendary = 5 },
 		CompressionMethod = { Deflate = 0, Zlib = 1 },
 		BagIndex = { Backpack = 0, Bag_1 = 1, Bag_2 = 2, Bag_3 = 3, Bag_4 = 4, Bank = -1 },
+		UIMapType = { Cosmic = 0, World = 1, Continent = 2, Zone = 3, Dungeon = 4, Micro = 5, Orphan = 6 },
 	})
 
 	-----------------------------------------------------------------------------------------
@@ -717,7 +718,21 @@ function H.Install()
 	})
 	G.C_Map = namespace("C_Map", {
 		GetBestMapForUnit = function() return fx.mapID or 1453 end,
-		GetMapInfo = function(id) return { mapID = id, name = fx.maps and fx.maps[id] or ("Map " .. id), mapType = 3, parentMapID = 0 } end,
+		-- fx.maps = { [id] = name }, fx.mapTypes = { [id] = Enum.UIMapType value } (default: a zone)
+		GetMapInfo = function(id) return { mapID = id, name = fx.maps and fx.maps[id] or ("Map " .. id), mapType = fx.mapTypes and fx.mapTypes[id] or 3, parentMapID = 0 } end,
+		-- floors: fx.mapGroups = { [groupID] = { uiMap, ... } } (in floor order; names from fx.maps)
+		GetMapGroupID = function(uiMap)
+			for group, members in pairs(fx.mapGroups or {}) do
+				for _, m in ipairs(members) do if m == uiMap then return group end end
+			end
+		end,
+		GetMapGroupMembersInfo = function(group)
+			local out = {}
+			for i, m in ipairs(fx.mapGroups and fx.mapGroups[group] or {}) do
+				out[i] = { mapID = m, relativeHeightIndex = i - 1, name = fx.maps and fx.maps[m] or ("Map " .. m) }
+			end
+			return out
+		end,
 		GetAreaInfo = function(areaID) return fx.areas and fx.areas[areaID] or ("Area " .. areaID) end,
 		SetUserWaypoint = function(point) H.waypoint = point end,
 		GetUserWaypoint = function() return H.waypoint end,
