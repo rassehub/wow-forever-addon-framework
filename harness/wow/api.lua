@@ -219,6 +219,8 @@ function H.Install()
 	G.IsLoggedIn = function() return H.loggedIn == true end
 	G.InCombatLockdown = function() return H.inCombat end
 	G.IsIndoors = function() return fx.indoors == true end
+	-- fixtures.instance = "party" | "raid" | ...: inside one of that kind
+	G.IsInInstance = function() return fx.instance ~= nil, fx.instance or "none" end
 	G.ReloadUI = function() H.reloadRequested = true end
 	-- every file exists unless a test lists it in H.missingFiles (the real answer needs the client)
 	G.GetFileIDFromPath = function(path) return not (H.missingFiles and H.missingFiles[path]) and 1 or nil end
