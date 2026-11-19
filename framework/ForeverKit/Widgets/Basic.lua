@@ -57,7 +57,7 @@ end)
 ---@widget Spacer  Empty vertical space. opts: height.
 FK.Define("Spacer", {}, function(self, opts) self:SetSize(1, opts.height or 8) end)
 
----@widget Button  Push button. opts: text, onClick(widget, mouseButton), width (default: fits the text, at least 80).
+---@widget Button  Push button. opts: text, onClick(widget, mouseButton), width (default: fits the text, at least 80), small (small text and height, for dense panels).
 FK.Define("Button", {
 	fill = false,
 	SetText = function(self, text)
@@ -70,7 +70,7 @@ FK.Define("Button", {
 	Click = function(self) self.button:Click() end,
 	Restyle = function(self)
 		local T = Theme.current
-		self:SetHeight(self.opts.height or T.metric.control)
+		self:SetHeight(self.opts.height or T.metric.control - (self.opts.small and 4 or 0))
 		Theme.PaintState(self.button, T.surface.button, Theme.State(self))
 		self.text:SetPoint("CENTER", 0, self.down and self.enabled and -1 or 0)
 		self:SetText(self.text:GetText())
@@ -81,7 +81,7 @@ FK.Define("Button", {
 		if opts.onClick then opts.onClick(self, mouseButton) end
 	end)
 	self.button:SetAllPoints()
-	self.text = self:Text("button", nil, self.button)
+	self.text = self:Text(opts.small and "small" or "button", opts.small and "buttonText" or nil, self.button)
 	self.text:SetPoint("CENTER")
 	self.text:SetText(opts.text or "")
 end)
@@ -143,7 +143,7 @@ local function checkParts(self, opts, markKey)
 	self.box = FK.Frame("Frame", self.button)
 	self.box:SetPoint("LEFT")
 	self.mark = self.box:CreateTexture(nil, "OVERLAY")
-	self.text = self:Text("normal", nil, self.button)
+	self.text = self:Text(opts.small and "small" or "normal", nil, self.button)
 	self.text:SetPoint("LEFT", self.box, "RIGHT", 6, 0)
 	self.text:SetText(opts.label or opts.text or "")
 	self.value = opts.value and true or false
@@ -164,7 +164,7 @@ local Check = {
 	Click = function(self) self.button:Click() end,
 	Restyle = function(self)
 		local T = Theme.current
-		local size = T.metric.check
+		local size = T.metric.check - (self.opts.small and 4 or 0)
 		self.box:SetSize(size, size)
 		Theme.PaintState(self.box, T.surface.check, Theme.State(self))
 		local mark = T.surface[self.markKey]
@@ -177,12 +177,12 @@ local Check = {
 		-- the click area covers the box and its label, not the whole row
 		local width = size + 6 + self.text:GetStringWidth()
 		self.button:SetWidth(width)
-		self:SetHeight(math.max(size, T.metric.row))
+		self:SetHeight(self.opts.small and size + 2 or math.max(size, T.metric.row))
 		if not self.opts.width then self:SetWidth(width) end
 	end,
 }
 
----@widget CheckBox  Box with a tick and a label. opts: label, value (bool), onChange(bool).
+---@widget CheckBox  Box with a tick and a label. opts: label, value (bool), onChange(bool), small (small text and box, no row height: dense panels).
 FK.Define("CheckBox", Check, function(self, opts) checkParts(self, opts, "checkMark") end)
 
 ---@widget Toggle  On/off switch with a label: same behaviour as CheckBox, reads better for settings that take effect at once. opts: label, value (bool), onChange(bool).

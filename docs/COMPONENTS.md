@@ -78,7 +78,7 @@ Empty vertical space. opts: height.
 
 ### Button
 
-Push button. opts: text, onClick(widget, mouseButton), width (default: fits the text, at least 80).  
+Push button. opts: text, onClick(widget, mouseButton), width (default: fits the text, at least 80), small (small text and height, for dense panels).  
 <sub>[framework/ForeverKit/Widgets/Basic.lua:60](../framework/ForeverKit/Widgets/Basic.lua#L60)</sub>
 
 ### IconButton
@@ -88,7 +88,7 @@ Small square button showing a theme icon or a texture. opts: icon (theme icon na
 
 ### CheckBox
 
-Box with a tick and a label. opts: label, value (bool), onChange(bool).  
+Box with a tick and a label. opts: label, value (bool), onChange(bool), small (small text and box, no row height: dense panels).  
 <sub>[framework/ForeverKit/Widgets/Basic.lua:185](../framework/ForeverKit/Widgets/Basic.lua#L185)</sub>
 
 ### Toggle
@@ -158,13 +158,13 @@ Quest-tracker style frame: collapsible sections (header with arrow, icon, title,
 
 ### EditBox
 
-One-line text input. opts: label, value, placeholder, numeric, maxLetters, onChange(text) when committed (Enter or focus lost; Escape discards), onInput(text) on every keystroke, onEnter(text).  
-<sub>[framework/ForeverKit/Widgets/Input.lua:77](../framework/ForeverKit/Widgets/Input.lua#L77)</sub>
+One-line text input. opts: label, value, placeholder, numeric, maxLetters, small (small text, lower box), onChange(text) when committed (Enter or focus lost; Escape discards), onInput(text) on every keystroke, onEnter(text).  
+<sub>[framework/ForeverKit/Widgets/Input.lua:78](../framework/ForeverKit/Widgets/Input.lua#L78)</sub>
 
 ### SearchBox
 
-Text input with a search icon and a clear button; reports while typing, debounced. opts: placeholder (default "Search"), value, delay (default 0.2s), onSearch(text).  
-<sub>[framework/ForeverKit/Widgets/Input.lua:83](../framework/ForeverKit/Widgets/Input.lua#L83)</sub>
+Text input with a search icon and a clear button; reports while typing, debounced. opts: placeholder (default "Search"), value, delay (default 0.2s), small, onSearch(text).  
+<sub>[framework/ForeverKit/Widgets/Input.lua:84](../framework/ForeverKit/Widgets/Input.lua#L84)</sub>
 
 ### Journal
 

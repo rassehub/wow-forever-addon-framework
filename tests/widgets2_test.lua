@@ -424,3 +424,16 @@ test("hover follows the list: a wheel under a still mouse shows the new row's to
 	H.Wheel(list.rows[2], -1)
 	eq(H.TooltipLines(), { "Item 5" })
 end)
+
+test("small: check box, button and edit box in small text, lower than the normal ones", function()
+	local FK, win = kit()
+	local big = FK.CheckBox(win.content, { label = "Usable now" })
+	local small = FK.CheckBox(win.content, { label = "Usable now", small = true })
+	ok(small:GetHeight() < big:GetHeight(), "the small check box is lower")
+	ok(small.text:GetStringWidth() < big.text:GetStringWidth(), "and its text smaller")
+	ok(FK.Button(win.content, { text = "Slot", small = true }):GetHeight() < FK.Button(win.content, { text = "Slot" }):GetHeight())
+	local box = FK.EditBox(win.content, { small = true, placeholder = "from" })
+	ok(box:GetHeight() < FK.EditBox(win.content, {}):GetHeight())
+	ok(box.placeholder:GetStringWidth() < FK.EditBox(win.content, { placeholder = "from" }).placeholder:GetStringWidth())
+	FK.SearchBox(win.content, { small = true }) -- builds
+end)

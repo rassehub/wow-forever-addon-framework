@@ -14,10 +14,10 @@ local function inputParts(self, opts)
 	box:SetAutoFocus(false)
 	if opts.numeric then box:SetNumeric(true) end
 	if opts.maxLetters then box:SetMaxLetters(opts.maxLetters) end
-	box.fkRole = "normal"
+	box.fkRole = opts.small and "small" or "normal"
 	self.fkTexts = self.fkTexts or {}
 	self.fkTexts[#self.fkTexts + 1] = box
-	self.placeholder = self:Text("normal", "disabled", self.holder)
+	self.placeholder = self:Text(box.fkRole, "disabled", self.holder)
 	self.placeholder:SetPoint("LEFT", 6, 0)
 	self.placeholder:SetText(opts.placeholder or "")
 	self.value = tostring(opts.value or "")
@@ -67,20 +67,21 @@ local Input = {
 	OnEnabled = function(self, enabled) self.box:SetEnabled(enabled) end,
 	Restyle = function(self)
 		local T = Theme.current
-		self:SetHeight(self.top + T.metric.control)
-		self.holder:SetHeight(T.metric.control)
+		local h = T.metric.control - (self.opts.small and 4 or 0)
+		self:SetHeight(self.top + h)
+		self.holder:SetHeight(h)
 		Theme.Paint(self.holder, T.surface.input[not self.enabled and "disabled" or self.focused and "focus" or "normal"])
 		self.placeholder:SetShown(self.box:GetText() == "")
 	end,
 }
 
----@widget EditBox  One-line text input. opts: label, value, placeholder, numeric, maxLetters, onChange(text) when committed (Enter or focus lost; Escape discards), onInput(text) on every keystroke, onEnter(text).
+---@widget EditBox  One-line text input. opts: label, value, placeholder, numeric, maxLetters, small (small text, lower box), onChange(text) when committed (Enter or focus lost; Escape discards), onInput(text) on every keystroke, onEnter(text).
 FK.Define("EditBox", Mixin({ fill = false }, Input), function(self, opts)
 	if not opts.width then self:SetWidth(160) end
 	inputParts(self, opts)
 end)
 
----@widget SearchBox  Text input with a search icon and a clear button; reports while typing, debounced. opts: placeholder (default "Search"), value, delay (default 0.2s), onSearch(text).
+---@widget SearchBox  Text input with a search icon and a clear button; reports while typing, debounced. opts: placeholder (default "Search"), value, delay (default 0.2s), small, onSearch(text).
 FK.Define("SearchBox", Mixin({}, Input, {
 	Clear = function(self)
 		self.box:SetText("")
