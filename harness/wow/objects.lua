@@ -470,7 +470,7 @@ local function setFontFrom(o, src)
 		if not src then error("unknown font object " .. name, 3) end
 	end
 	local f, of = fontState(src), fontState(o)
-	of.file, of.size, of.flags, of.object = f.file, f.size, f.flags, src
+	of.file, of.size, of.flags, of.object, of.unset = f.file, f.size, f.flags, src, nil
 	of.color = { unpack(f.color) }
 	of.justifyH = f.justifyH
 	dirty()
@@ -480,7 +480,7 @@ local FontMethods = {}
 function FontMethods:SetFont(file, size, flags)
 	if type(file) ~= "string" or type(size) ~= "number" then error("SetFont(file, size [, flags])", 2) end
 	local f = fontState(self)
-	f.file, f.size, f.flags = file, size, flags or ""
+	f.file, f.size, f.flags, f.unset = file, size, flags or "", nil
 	dirty()
 	return true
 end
@@ -611,6 +611,8 @@ end
 
 function FontString:SetText(text)
 	local s = self[0]
+	-- the client refuses text on a font string made without a template before it has a font
+	if s.font.unset and text ~= nil and text ~= "" then error("FontString:SetText(): Font not set", 2) end
 	-- a secret is displayed normally but taints the getter (the "Text" secret aspect)
 	if H.IsSecret(text) then s.secretText, text = true, H.Reveal(text) end
 	s.text = text ~= nil and tostring(text) or nil
@@ -672,8 +674,8 @@ function Frame:CreateMaskTexture(name, layer) return newRegion(self, Texture, na
 function Frame:CreateFontString(name, layer, inherits)
 	local fs = newRegion(self, FontString, name, layer)
 	fs[0].font = newFontState()
-	setFontFrom(fs, inherits or "GameFontNormal")
-	if inherits == nil then fs[0].font.object = nil end
+	setFontFrom(fs, inherits or "GameFontNormal") -- sizes for measuring; without a template it is not "set"
+	if inherits == nil then fs[0].font.object, fs[0].font.unset = nil, true end
 	return fs
 end
 
