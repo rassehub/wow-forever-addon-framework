@@ -710,11 +710,45 @@ function H.Install()
 	})
 	G.C_QuestLog = namespace("C_QuestLog", {
 		IsQuestFlaggedCompleted = function(id) return fx.completedQuests[id] == true end,
-		IsOnQuest = function(id) return fx.questLog ~= nil and fx.questLog[id] == true end,
+		IsOnQuest = function(id)
+			for _, e in ipairs(fx.questLogEntries or {}) do if e.questID == id then return true end end
+			return fx.questLog ~= nil and fx.questLog[id] == true
+		end,
 		GetQuestTagInfo = function() return nil end, -- plain quests: no elite, dungeon or raid tag
 		GetTitleForQuestID = function() return nil end,
 		-- Forever's green range: levels below yours that still give a green quest (fx.greenRange)
 		GetTrivialRange = function() return fx.greenRange or 8 end,
+		-- the quest log, as Forever's modern API gives it: fx.questLogEntries = { { title, isHeader }
+		-- or { questID, title, level, complete, objectives = { { text, finished, numFulfilled,
+		-- numRequired, type } } } } in log order; questLog = { [id] = true } follows it
+		GetNumQuestLogEntries = function()
+			local n, quests = #(fx.questLogEntries or {}), 0
+			for _, e in ipairs(fx.questLogEntries or {}) do if not e.isHeader then quests = quests + 1 end end
+			return n, quests
+		end,
+		GetInfo = function(index)
+			local e = fx.questLogEntries and fx.questLogEntries[index]
+			if not e then return nil end
+			return { title = e.title, level = e.level or 0, isHeader = e.isHeader == true, isCollapsed = false,
+				questID = e.questID or 0, isHidden = false, frequency = 0 }
+		end,
+		IsComplete = function(id)
+			for _, e in ipairs(fx.questLogEntries or {}) do if e.questID == id then return e.complete == true end end
+			return false
+		end,
+		GetQuestObjectives = function(id)
+			for _, e in ipairs(fx.questLogEntries or {}) do
+				if e.questID == id then
+					local out = {}
+					for i, o in ipairs(e.objectives or {}) do
+						out[i] = { text = o.text, finished = o.finished == true, numFulfilled = o.numFulfilled or 0,
+							numRequired = o.numRequired or 1, type = o.type or "monster" }
+					end
+					return out
+				end
+			end
+			return {}
+		end,
 	})
 	G.C_Map = namespace("C_Map", {
 		GetBestMapForUnit = function() return fx.mapID or 1453 end,
