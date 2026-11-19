@@ -574,7 +574,7 @@ function H.Install()
 		ITEM_UNIQUE = "Unique", ITEM_UNIQUE_MULTIPLE = "Unique (%d)", ITEM_UNIQUE_EQUIPPABLE = "Unique-Equipped",
 		DAMAGE_TEMPLATE = "%s - %s Damage", SINGLE_DAMAGE_TEMPLATE = "%s Damage", DAMAGE_TEMPLATE_WITH_SCHOOL = "%s - %s %s Damage",
 		DPS_TEMPLATE = "(%.1f damage per second)", ARMOR_TEMPLATE = "%s Armor", SPEED = "Speed",
-		ITEM_STARTS_QUEST = "This Item Begins a Quest",
+		ITEM_STARTS_QUEST = "This Item Begins a Quest", ITEM_SPELL_KNOWN = "Already known",
 		INVTYPE_WEAPON = "One-Hand", INVTYPE_LEGS = "Legs", INVTYPE_HEAD = "Head", INVTYPE_CHEST = "Chest",
 	}) do G[k] = v end
 	G.GetItemQualityColor = function(q) local c = G.ITEM_QUALITY_COLORS[q] or G.ITEM_QUALITY_COLORS[1] return c.r, c.g, c.b, c.colorStr end
